@@ -6,7 +6,7 @@ You need all specification pages for a project to implement or review code. This
 
 ## Prerequisites
 
-- [Expedait CLI](https://github.com/Expedait/expedait-cli) installed and authenticated
+- [Expedait CLI](https://github.com/Expedait/expedait-cli) — run via `uvx expedait-cli` (no install needed)
 - Know the project ID (use `expedait projects list` to find it)
 
 ## Steps
@@ -14,7 +14,7 @@ You need all specification pages for a project to implement or review code. This
 ### 1. Find the project
 
 ```bash
-expedait projects list --format json
+uvx expedait-cli projects list --format json
 ```
 
 Output:
@@ -28,7 +28,7 @@ Output:
 ### 2. Download all pages
 
 ```bash
-expedait projects download PROJECT_ID --output-dir ./specs
+uvx expedait-cli projects download PROJECT_ID --output-dir ./specs
 ```
 
 This extracts a ZIP containing:
@@ -58,17 +58,17 @@ If you only need one page:
 
 ```bash
 # Print markdown content to stdout
-expedait pages get PAGE_ID
+uvx expedait-cli pages get PAGE_ID
 
 # Get full context (content + comments + dependencies + lock status)
-expedait pages full PAGE_ID --format json
+uvx expedait-cli pages full PAGE_ID --format json
 
 # Download as ZIP
-expedait pages download PAGE_ID --output-dir ./specs
+uvx expedait-cli pages download PAGE_ID --output-dir ./specs
 ```
 
 ## Tips
 
 - Use `--format json` when piping output to other tools
-- The `pages full` command includes dependency information — useful for understanding page relationships
+- The `uvx expedait-cli pages full` command includes dependency information — useful for understanding page relationships
 - Page content may reference images via `![name](/api/v1/pages/files/{file_id})` — these are included in the ZIP download
