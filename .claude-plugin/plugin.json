@@ -1,0 +1,12 @@
+{
+  "name": "expedait-skills",
+  "description": "AI agent skills for managing project specifications with Expedait — download specs, post inline comments, and review code against requirements.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Expedait"
+  },
+  "homepage": "https://expedait.com",
+  "repository": "https://github.com/Expedait/expedait-skills",
+  "license": "Apache-2.0",
+  "keywords": ["expedait", "specifications", "project-management", "code-review"]
+}

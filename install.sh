@@ -446,6 +446,10 @@ main() {
   echo -e "${BOLD}Next steps:${NC}"
   echo "  1. Authenticate: uvx expedait-cli auth login"
   echo "  2. Ask your agent to download specs or review code"
+  echo ""
+  echo -e "${BOLD}Tip:${NC} Claude Code users can also install via plugin:"
+  echo "  /plugin marketplace add Expedait/expedait-skills"
+  echo "  /plugin install expedait-skills@expedait"
 }
 
 main "$@"
