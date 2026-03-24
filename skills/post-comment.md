@@ -6,7 +6,7 @@ Your code diverges from a specification, or you've found an issue in a spec page
 
 ## Prerequisites
 
-- [Expedait CLI](https://github.com/Expedait/expedait-cli) installed and authenticated
+- [Expedait CLI](https://github.com/Expedait/expedait-cli) — run via `uvx expedait-cli` (no install needed)
 - Know the page ID and the text you want to comment on
 
 ## Steps
@@ -14,7 +14,7 @@ Your code diverges from a specification, or you've found an issue in a spec page
 ### 1. Get the page content
 
 ```bash
-expedait pages get PAGE_ID
+uvx expedait-cli pages get PAGE_ID
 ```
 
 ### 2. Find the text to comment on
@@ -27,7 +27,7 @@ Identify the exact text in the page content. You need:
 ### 3. Create the comment
 
 ```bash
-expedait comments create PAGE_ID \
+uvx expedait-cli comments create PAGE_ID \
   --text "Implementation uses WebSockets instead of SSE as specified here. The change was made for bidirectional communication needs." \
   --selected-text "Server-Sent Events for real-time updates" \
   --start-offset 1423 \
@@ -46,7 +46,7 @@ Options:
 ### 4. Verify the comment was created
 
 ```bash
-expedait comments list PAGE_ID --format json
+uvx expedait-cli comments list PAGE_ID --format json
 ```
 
 ## Computing Offsets
@@ -54,7 +54,7 @@ expedait comments list PAGE_ID --format json
 To find the character offsets for a piece of text in the page content:
 
 ```python
-content = "..."  # page content from `expedait pages get PAGE_ID`
+content = "..."  # page content from `uvx expedait-cli pages get PAGE_ID`
 selected = "Server-Sent Events for real-time updates"
 start = content.index(selected)
 end = start + len(selected)

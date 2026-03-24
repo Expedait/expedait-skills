@@ -6,17 +6,25 @@ Step-by-step guides for AI coding agents that use [Expedait](https://expedait.co
 
 ## Quickstart
 
-1. Install the [Expedait CLI](https://github.com/Expedait/expedait-cli):
+### 1. Install skills into your project
 
 ```bash
-pip install expedait-cli
+# Claude Code
+npx expedait-skills@latest install
+
+# Or manually with curl
+curl -fsSL https://raw.githubusercontent.com/Expedait/expedait-skills/main/install.sh | bash
 ```
 
-2. Authenticate:
+The installer auto-detects your agent (Claude Code, Cursor, OpenCode, Codex) and sets up the right config files. See [Agent Setup](#agent-setup) for manual instructions.
+
+### 2. Authenticate with Expedait
+
+The CLI runs via [`uvx`](https://docs.astral.sh/uv/) — no global install needed:
 
 ```bash
 # Interactive login
-expedait auth login
+uvx expedait-cli auth login
 
 # Or set environment variables (for CI / agent environments)
 export EXPEDAIT_TOKEN="your-jwt-token"
@@ -24,12 +32,16 @@ export EXPEDAIT_API_URL="https://your-instance.expedait.com"
 export EXPEDAIT_TENANT_ID=1
 ```
 
-3. Use a skill — for example, download all project specs:
+### 3. Use a skill
 
-```bash
-expedait projects list --format json
-expedait projects download 1 --output-dir ./specs
+Ask your agent to download specs, post comments, or review code — it knows the workflows.
+
 ```
+> /expedait-download     # Claude Code
+> @expedait-download     # Cursor (manual rule invocation)
+```
+
+Or just ask naturally: *"Download the specs for project 1 and review my code against them."*
 
 ## Available Skills
 
@@ -38,6 +50,79 @@ expedait projects download 1 --output-dir ./specs
 | [Download Project Context](skills/download-project-context.md) | Download all spec pages for a project |
 | [Post a Comment](skills/post-comment.md) | Post an inline comment on a spec page |
 | [Review and Comment](skills/review-and-comment.md) | End-to-end: read specs, review code, post comments |
+
+## Agent Setup
+
+### Claude Code
+
+The installer creates skills as custom slash commands in `.claude/skills/`:
+
+```
+.claude/skills/
+  expedait-download/SKILL.md
+  expedait-comment/SKILL.md
+  expedait-review/SKILL.md
+```
+
+These become available as `/expedait-download`, `/expedait-comment`, and `/expedait-review`.
+
+**Manual setup:**
+
+```bash
+./install.sh --agent claude-code
+```
+
+Or add to your `CLAUDE.md`:
+
+```markdown
+## Expedait Integration
+
+Use `uvx expedait-cli` (not `pip`) for all Expedait commands.
+See the skills in `.claude/skills/expedait-*` for workflows.
+```
+
+### Cursor
+
+The installer creates a rule file at `.cursor/rules/expedait.mdc`:
+
+```yaml
+---
+description: "Expedait spec management — download specs, post comments, review code"
+alwaysApply: false
+---
+```
+
+Cursor's agent will pick it up automatically when Expedait-related questions come up, or you can invoke it manually with `@expedait`.
+
+**Manual setup:**
+
+```bash
+./install.sh --agent cursor
+```
+
+### OpenCode
+
+The installer appends Expedait instructions to your `AGENTS.md`:
+
+```bash
+./install.sh --agent opencode
+```
+
+If `AGENTS.md` doesn't exist, it creates one. If it does, it appends an `## Expedait Integration` section.
+
+### Codex (OpenAI)
+
+Same as OpenCode — the installer appends to `AGENTS.md`, which Codex reads automatically:
+
+```bash
+./install.sh --agent codex
+```
+
+### All agents at once
+
+```bash
+./install.sh --all
+```
 
 ## What are Skills?
 
@@ -48,30 +133,7 @@ Skills are structured, agent-oriented guides that describe how to accomplish com
 - **Step-by-step instructions** — CLI commands with example output
 - **Tips** — best practices and edge cases
 
-They are designed to be consumed by AI coding agents (Claude Code, Cursor, Windsurf, Copilot, etc.) as part of their tool documentation, but are also useful as human reference.
-
-## Using Skills with Claude Code
-
-Add the skills directory to your project's `.claude/settings.json`:
-
-```json
-{
-  "permissions": {
-    "allow": ["Bash(expedait *)"]
-  }
-}
-```
-
-Then reference the skill files in your prompts or CLAUDE.md:
-
-```markdown
-## Expedait Integration
-
-See [expedait-skills](https://github.com/Expedait/expedait-skills) for agent workflows:
-- Download specs before implementing: skills/download-project-context.md
-- Post comments when code diverges from spec: skills/post-comment.md
-- Full review workflow: skills/review-and-comment.md
-```
+They are designed to be consumed by AI coding agents (Claude Code, Cursor, OpenCode, Codex, etc.) as part of their tool documentation, but are also useful as human reference.
 
 ## Contributing
 
