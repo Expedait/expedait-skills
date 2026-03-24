@@ -8,15 +8,23 @@ Step-by-step guides for AI coding agents that use [Expedait](https://expedait.co
 
 ### 1. Install skills into your project
 
+**Claude Code plugin** (recommended):
+
 ```bash
-# Claude Code
+/plugin marketplace add Expedait/expedait-skills
+/plugin install expedait-skills@expedait
+```
+
+**Script installer** (Claude Code, Cursor, OpenCode, Codex):
+
+```bash
 npx expedait-skills@latest install
 
 # Or manually with curl
 curl -fsSL https://raw.githubusercontent.com/Expedait/expedait-skills/main/install.sh | bash
 ```
 
-The installer auto-detects your agent (Claude Code, Cursor, OpenCode, Codex) and sets up the right config files. See [Agent Setup](#agent-setup) for manual instructions.
+The script installer auto-detects your agent and sets up the right config files. See [Agent Setup](#agent-setup) for manual instructions.
 
 ### 2. Authenticate with Expedait
 
@@ -53,7 +61,36 @@ Or just ask naturally: *"Download the specs for project 1 and review my code aga
 
 ## Agent Setup
 
-### Claude Code
+### Claude Code (Plugin)
+
+Install as a Claude Code plugin — no manual file setup needed:
+
+```bash
+/plugin marketplace add Expedait/expedait-skills
+/plugin install expedait-skills@expedait
+```
+
+This registers the marketplace and installs the skills as `/expedait-download`, `/expedait-comment`, and `/expedait-review`.
+
+Teams can also auto-enable the plugin by adding to `.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "expedait": {
+      "source": {
+        "source": "github",
+        "repo": "Expedait/expedait-skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "expedait-skills@expedait": true
+  }
+}
+```
+
+### Claude Code (Script)
 
 The installer creates skills as custom slash commands in `.claude/skills/`:
 

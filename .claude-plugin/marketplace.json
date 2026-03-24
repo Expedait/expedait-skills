@@ -1,0 +1,17 @@
+{
+  "name": "expedait",
+  "owner": {
+    "name": "Expedait",
+    "email": "support@expedait.com"
+  },
+  "metadata": {
+    "description": "Skills for managing project specifications with Expedait"
+  },
+  "plugins": [
+    {
+      "name": "expedait-skills",
+      "source": "./",
+      "description": "AI agent skills for managing project specifications with Expedait — download specs, post inline comments, and review code against requirements."
+    }
+  ]
+}
