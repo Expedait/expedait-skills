@@ -44,180 +44,15 @@ EOF
 install_claude_code() {
   local dir="$TARGET_DIR/.claude/skills"
 
-  # Download Project Context
-  mkdir -p "$dir/expedait-download"
-  cat > "$dir/expedait-download/SKILL.md" <<'SKILL'
----
-name: expedait-download
-description: "Download all specification pages for an Expedait project. Use when you need project context, specs, or requirements before implementing or reviewing code."
-user-invocable: true
-allowed-tools: Bash, Read, Glob, Grep
-argument-hint: "[project-id]"
----
-
-# Download Project Context from Expedait
-
-Use `uvx expedait-cli` for all commands (do NOT use `pip install`).
-
-## Steps
-
-1. If no project ID was given via $ARGUMENTS, list available projects:
-   ```bash
-   uvx expedait-cli projects list --format json
-   ```
-
-2. Download all spec pages:
-   ```bash
-   uvx expedait-cli projects download PROJECT_ID --output-dir ./specs
-   ```
-
-3. Read the downloaded specs in `./specs/` to understand the project requirements.
-
-## Single page alternative
-
-```bash
-# Print markdown to stdout
-uvx expedait-cli pages get PAGE_ID
-
-# Full context (content + comments + dependencies)
-uvx expedait-cli pages full PAGE_ID --format json
-
-# Download as ZIP
-uvx expedait-cli pages download PAGE_ID --output-dir ./specs
-```
-
-## Tips
-
-- Use `--format json` when piping output to other tools
-- `pages full` includes dependency info — useful for understanding page relationships
-- Page images referenced as `![name](/api/v1/pages/files/{file_id})` are included in ZIP downloads
-SKILL
-
-  # Post Comment
-  mkdir -p "$dir/expedait-comment"
-  cat > "$dir/expedait-comment/SKILL.md" <<'SKILL'
----
-name: expedait-comment
-description: "Post an inline comment on an Expedait spec page. Use when code diverges from a specification or you find an issue in a spec."
-user-invocable: true
-allowed-tools: Bash, Read, Glob, Grep
-argument-hint: "[page-id] [comment text]"
----
-
-# Post a Comment on an Expedait Spec Page
-
-Use `uvx expedait-cli` for all commands (do NOT use `pip install`).
-
-## Steps
-
-1. Get the page content:
-   ```bash
-   uvx expedait-cli pages get PAGE_ID
-   ```
-
-2. Find the exact text to comment on. Compute character offsets:
-   ```python
-   content = "..."  # page content
-   selected = "the text to comment on"
-   start = content.index(selected)
-   end = start + len(selected)
-   ```
-
-3. Create the comment:
-   ```bash
-   uvx expedait-cli comments create PAGE_ID \
-     --text "Your comment" \
-     --selected-text "exact text from the page" \
-     --start-offset START \
-     --end-offset END \
-     --source-page-id SOURCE_PAGE_ID
-   ```
-
-4. Verify:
-   ```bash
-   uvx expedait-cli comments list PAGE_ID --format json
-   ```
-
-## Options
-
-- `--text` (required): Your comment content
-- `--selected-text` (required): Exact text from the page
-- `--start-offset` / `--end-offset` (required): Character offsets
-- `--source-page-id` (optional): The page your agent is working from
-- `--parent-comment-id` (optional): Reply to an existing comment
-
-## Tips
-
-- Comments are auto-marked as agent comments (`is_agent_comment: true`)
-- Use `--source-page-id` for cross-page notification workflows
-- Keep comments actionable: describe what diverged and why
-SKILL
-
-  # Review and Comment
-  mkdir -p "$dir/expedait-review"
-  cat > "$dir/expedait-review/SKILL.md" <<'SKILL'
----
-name: expedait-review
-description: "Review code against Expedait specs and post comments on divergences. End-to-end workflow: download specs, compare with code, post inline comments."
-user-invocable: true
-allowed-tools: Bash, Read, Glob, Grep
-argument-hint: "[project-id]"
----
-
-# Review Code Against Expedait Specs
-
-Use `uvx expedait-cli` for all commands (do NOT use `pip install`).
-
-## Steps
-
-1. Download all specs:
-   ```bash
-   uvx expedait-cli projects download PROJECT_ID --output-dir ./specs
-   ```
-
-2. Read each spec page and compare against the implementation. Check:
-   - Are requirements implemented as described?
-   - Are there features in code not in the spec?
-   - Are there spec requirements implemented differently?
-
-3. Get page IDs for commenting:
-   ```bash
-   uvx expedait-cli pages list --project-id PROJECT_ID --format json
-   ```
-
-4. For each discrepancy, get the page content and compute offsets:
-   ```bash
-   uvx expedait-cli pages get PAGE_ID
-   ```
-   ```python
-   content = "..."  # from pages get
-   selected_text = "the specific text"
-   start_offset = content.index(selected_text)
-   end_offset = start_offset + len(selected_text)
-   ```
-
-5. Post the comment:
-   ```bash
-   uvx expedait-cli comments create PAGE_ID \
-     --text "Implementation note: [describe the divergence]" \
-     --selected-text "the specific text" \
-     --start-offset START \
-     --end-offset END \
-     --source-page-id SOURCE_PAGE_ID
-   ```
-
-6. Verify all comments:
-   ```bash
-   uvx expedait-cli comments list PAGE_ID --format json
-   ```
-
-## Tips
-
-- Review ALL spec pages, not just the one you're implementing — changes affect dependencies
-- Use `uvx expedait-cli pages full PAGE_ID` to see existing comments before adding duplicates
-- Comments should be actionable: state what diverged, why, and what needs to change
-- Use `--source-page-id` when your agent owns a specific page
-SKILL
+  # Copy each skill's SKILL.md from the source
+  for skill in expedait-download expedait-comment expedait-review; do
+    if [[ ! -f "$SKILLS_DIR/$skill/SKILL.md" ]]; then
+      error "Missing skill source: $SKILLS_DIR/$skill/SKILL.md"
+      exit 1
+    fi
+    mkdir -p "$dir/$skill"
+    cp "$SKILLS_DIR/$skill/SKILL.md" "$dir/$skill/SKILL.md"
+  done
 
   info "Claude Code: installed skills in $dir/"
   info "  /expedait-download  — download project specs"
@@ -238,25 +73,35 @@ alwaysApply: false
 
 # Expedait Integration
 
-Use `uvx expedait-cli` for all Expedait commands. Do NOT use `pip install`.
+Use `uvx expedait-cli` for all Expedait commands — it runs in an isolated environment via uv, so no global install or virtual environment is needed.
 
 ## Authentication
 
 The user must authenticate first:
 ```bash
 uvx expedait-cli auth login
+uvx expedait-cli auth status  # verify credentials
 ```
 
 Or via environment variables: `EXPEDAIT_TOKEN`, `EXPEDAIT_API_URL`, `EXPEDAIT_TENANT_ID`.
 
+## Project Setup
+
+Initialize the project directory (creates `.expedait/settings.json`):
+```bash
+uvx expedait-cli init
+```
+
+Settings are resolved in order: CLI flag → environment variable → local config → home directory config.
+
 ## Download Project Specs
 
 ```bash
-uvx expedait-cli projects list --format json
-uvx expedait-cli projects download PROJECT_ID --output-dir ./specs
+uvx expedait-cli projects list
+uvx expedait-cli projects download PROJECT_ID
 ```
 
-Downloaded specs are markdown files organized by phase in `./specs/`.
+Downloaded specs are markdown files organized by phase in `.expedait/context/`.
 
 ## Post a Comment
 
@@ -271,20 +116,37 @@ uvx expedait-cli comments create PAGE_ID \
   --text "Your comment" \
   --selected-text "exact text from the page" \
   --start-offset START --end-offset END
+
+# Resolve or delete a comment
+uvx expedait-cli comments resolve PAGE_ID COMMENT_ID
+uvx expedait-cli comments delete PAGE_ID COMMENT_ID
 ```
 
 Compute offsets: `start = content.index(selected_text)`, `end = start + len(selected_text)`.
 
 ## Review Code Against Specs
 
-1. Download specs: `uvx expedait-cli projects download PROJECT_ID --output-dir ./specs`
-2. Compare each spec page against the implementation
-3. For each discrepancy, post an inline comment with `uvx expedait-cli comments create`
-4. Check for existing comments first: `uvx expedait-cli pages full PAGE_ID`
+Automatically scopes to branch changes on feature branches, full audit on default branch:
+
+```bash
+# Determine scope (feature branch)
+MERGE_BASE=$(git merge-base HEAD origin/main)
+git diff --name-only "$MERGE_BASE"..HEAD
+
+# Fetch fresh specs — focus on PRD and product vision
+uvx expedait-cli projects download PROJECT_ID
+```
+
+1. Compare PRD and vision specs against code in scope
+2. Produce a local consistency report (Conflicts, Missing, Unspecified, Aligned)
+3. Does NOT auto-post comments — use `comments create` for findings worth flagging
+
+Flag: conflicts (spec says X, code does Y), missing requirements, unspecified code.
+Skip: naming differences, open implementation details, WIP code.
 
 ## Tips
 
-- Use `--format json` when piping output to other tools
+- Output format auto-detects: text for terminal, JSON when piped. Use `--format json` to force JSON output
 - Comments are auto-marked as agent comments
 - Use `--source-page-id` to link comments to the page your agent owns
 RULE
@@ -308,22 +170,34 @@ install_agents_md() {
 
 ## Expedait Integration
 
-Use `uvx expedait-cli` for all Expedait commands. Do NOT use `pip install`.
+Use `uvx expedait-cli` for all Expedait commands — it runs in an isolated environment via uv, so no global install or virtual environment is needed.
 
 ### Authentication
 
 ```bash
 uvx expedait-cli auth login
+uvx expedait-cli auth status  # verify credentials
 ```
 
 Or set environment variables: `EXPEDAIT_TOKEN`, `EXPEDAIT_API_URL`, `EXPEDAIT_TENANT_ID`.
 
+### Project Setup
+
+Initialize the project directory (creates `.expedait/settings.json`):
+```bash
+uvx expedait-cli init
+```
+
+Settings are resolved in order: CLI flag → environment variable → local config → home directory config.
+
 ### Download Project Specs
 
 ```bash
-uvx expedait-cli projects list --format json
-uvx expedait-cli projects download PROJECT_ID --output-dir ./specs
+uvx expedait-cli projects list
+uvx expedait-cli projects download PROJECT_ID
 ```
+
+Downloads to `.expedait/context/` by default.
 
 ### Post a Comment on a Spec Page
 
@@ -339,16 +213,24 @@ Compute offsets: `start = content.index(selected_text)`, `end = start + len(sele
 
 ### Review Code Against Specs
 
-1. Download specs: `uvx expedait-cli projects download PROJECT_ID --output-dir ./specs`
-2. Compare each spec against the implementation
-3. Post inline comments for each discrepancy using `comments create`
-4. Check existing comments first: `uvx expedait-cli pages full PAGE_ID`
+Scopes automatically to branch changes on feature branches, full audit on default branch:
+
+```bash
+MERGE_BASE=$(git merge-base HEAD origin/main)
+git diff --name-only "$MERGE_BASE"..HEAD  # scope on feature branches
+uvx expedait-cli projects download PROJECT_ID  # fetch fresh specs
+```
+
+1. Focus on PRD and product vision specs
+2. Produce a local consistency report (Conflicts, Missing, Unspecified, Aligned)
+3. Does NOT auto-post comments — use `comments create` for findings worth flagging
 
 ### Tips
 
-- Use `--format json` for machine-readable output
+- Output format auto-detects: text for terminal, JSON when piped. Use `--format json` to force JSON output
 - Comments are auto-marked as agent comments
 - Use `--source-page-id` to link comments back to your agent's page
+- Resolve comments with `uvx expedait-cli comments resolve PAGE_ID COMMENT_ID`
 AGENTS
 )
 
@@ -445,7 +327,8 @@ main() {
   echo ""
   echo -e "${BOLD}Next steps:${NC}"
   echo "  1. Authenticate: uvx expedait-cli auth login"
-  echo "  2. Ask your agent to download specs or review code"
+  echo "  2. Initialize project: uvx expedait-cli init"
+  echo "  3. Ask your agent to download specs or review code"
   echo ""
   echo -e "${BOLD}Tip:${NC} Claude Code users can also install via plugin:"
   echo "  /plugin marketplace add Expedait/expedait-skills"
