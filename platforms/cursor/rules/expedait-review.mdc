@@ -1,0 +1,113 @@
+---
+description: "Review code against Expedait specs (PRD, product vision) and produce a consistency report. Automatically scopes to branch changes on feature branches, or full codebase on the default branch. Use this skill whenever the user asks to check code against specs, validate against the PRD, review implementation, audit a branch, check for drift, or do a pre-merge sanity check. Also trigger for 'are we aligned with the vision', 'compare code to specs', 'check my implementation', or 'are we following the requirements'."
+alwaysApply: false
+---
+
+# Review Code Against Expedait Specs
+
+Use `uvx expedait-cli` for all commands — it runs in an isolated environment via uv, so no global install or virtual environment is needed.
+
+This skill produces a local consistency report. It does not post comments back to Expedait — that's a deliberate follow-up the user can request via `/expedait-comment` after reviewing the findings.
+
+## Step 1: Determine review scope
+
+The scope should match what the developer actually cares about. Reviewing the entire codebase when only 3 files changed wastes time and buries findings in noise.
+
+```bash
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+```
+
+**On a feature branch** (current branch differs from default):
+```bash
+MERGE_BASE=$(git merge-base HEAD "origin/$DEFAULT_BRANCH")
+git diff --name-only "$MERGE_BASE"..HEAD
+```
+Only review these changed files against the specs.
+
+**On the default branch**, or if the user explicitly asks for a full audit, review the entire codebase. This is useful for periodic alignment checks or before major releases.
+
+**If the user's input contains a project ID**, use it directly. Otherwise, check `.expedait/settings.json` or list projects.
+
+## Step 2: Fetch latest specs
+
+Always pull fresh specs — stale local copies lead to false positives.
+
+```bash
+uvx expedait-cli projects download PROJECT_ID
+```
+
+Downloads to `.expedait/context/` by default.
+
+## Step 3: Identify high-signal specs
+
+Focus on the specs that define what the product should do and why:
+
+1. **Product Vision** — strategic intent. Look for `*vision*`, `*product-vision*` in `.expedait/context/`.
+2. **PRD** — detailed requirements. Look for `*prd*`, `*product-requirements*`.
+
+Read these first. If other high-level specs exist (BRD, architecture doc), include them too, but prioritize vision and PRD.
+
+```bash
+uvx expedait-cli pages list --project-id PROJECT_ID --format json
+```
+
+Keep track of page IDs and titles — the report should reference them.
+
+## Step 4: Compare specs against code
+
+For each high-signal spec, compare its requirements against the code in scope.
+
+**What to flag** (high signal):
+- A requirement the code contradicts or ignores
+- A vision principle the implementation works against
+- A feature partially implemented in a way that changes its behavior
+- New code that introduces functionality not covered by any spec (scope creep)
+
+**What to skip** (low signal):
+- Minor naming differences between spec and code
+- Implementation details the spec intentionally leaves open
+- Work-in-progress code that clearly isn't finished yet
+- Specs that describe future phases not yet started
+
+On feature branches, pay attention to direction: do the changes move the code closer to or further from the spec? Deliberate divergences are the most important to flag.
+
+## Step 5: Produce the consistency report
+
+Present findings to the user grouped by severity. Include page IDs and spec section references so findings are easy to act on.
+
+```markdown
+## Consistency Report
+
+**Scope:** [branch `feature/xyz` — 12 files changed] or [full codebase audit]
+**Specs reviewed:** Product Vision (page 5), PRD (page 10)
+
+### Conflicts (spec says X, code does Y)
+- **PRD § "Authentication" (page 10)**: Spec requires OAuth2 PKCE flow, but `src/auth/login.ts` implements basic JWT with no PKCE.
+
+### Missing (spec requires it, code doesn't have it)
+- **Vision § "Offline-first" (page 5)**: No service worker or local storage caching found in the changed files.
+
+### Unspecified (code does it, spec doesn't mention it)
+- `src/api/webhooks.ts` implements a webhook retry system not described in any spec.
+
+### Aligned
+- Payment flow matches PRD § "Billing" — Stripe integration as specified.
+```
+
+Vision-level conflicts are higher priority than PRD-level ones — they indicate strategic misalignment, not just missing details. If many divergences share a theme (auth, data model, UX), group them rather than listing individually.
+
+## What happens next
+
+The report is for the developer to review locally. If they want to post findings back to Expedait as inline comments, they can:
+- Ask the agent to post specific findings (the agent uses `uvx expedait-cli comments create` with the page IDs from the report)
+- Use `/expedait-comment` for individual comments
+
+This separation keeps the review fast and non-destructive — no comments are posted to the spec system until the developer decides which findings are worth flagging.
+
+## Tips
+
+- On a feature branch, the merge-base diff is the right scope. Reviewing unchanged files adds noise
+- Always fetch fresh specs before reviewing. Spec authors may have updated requirements since your last download
+- For a quick check of a single spec page, use `uvx expedait-cli pages full PAGE_ID` to see content + existing comments + dependencies in one call
+- Output format auto-detects: text for terminal, JSON when piped. Use `--format json` to force JSON output

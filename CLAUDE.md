@@ -6,6 +6,16 @@ Check if the `expedait-cli` API has changed by reviewing its PyPI page: https://
 
 Compare its latest commands, flags, and output formats against what the skills in `skills/` assume. If the CLI has changed, update the affected skills to match.
 
+## After modifying skills
+
+Skills in `skills/*/SKILL.md` are the single source of truth. Platform-specific files in `platforms/` are generated. After editing any SKILL.md:
+
+```bash
+uv run build.py
+```
+
+Commit both the skill changes and the regenerated `platforms/` directory. CI will fail if they are out of sync.
+
 ## Releasing
 
 Tags follow semver: `v0.1.0`, `v0.2.0`, `v1.0.0`. Pushing a `v*` tag triggers `.github/workflows/publish.yml`, which publishes to npm and creates a GitHub release.

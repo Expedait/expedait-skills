@@ -1,0 +1,66 @@
+---
+name: expedait-comment
+description: "Post an inline comment on an Expedait spec page. Use this skill whenever the user wants to annotate a spec, flag a divergence between code and specifications, leave feedback on a requirement, or report an issue in an Expedait page. Also trigger when the user says 'comment on the spec', 'flag this in Expedait', or 'leave a note on the requirement'."
+user-invocable: true
+allowed-tools: Bash, Read, Glob, Grep
+argument-hint: [page-id] [comment text]
+---
+
+# Post a Comment on an Expedait Spec Page
+
+Use `uvx expedait-cli` for all commands — it runs in an isolated environment via uv, so no global install or virtual environment is needed.
+
+## Steps
+
+1. Get the page content:
+   ```bash
+   uvx expedait-cli pages get PAGE_ID
+   ```
+
+2. Find the exact text to comment on. Compute character offsets:
+   ```python
+   content = "..."  # page content
+   selected = "the text to comment on"
+   start = content.index(selected)
+   end = start + len(selected)
+   ```
+
+3. Create the comment:
+   ```bash
+   uvx expedait-cli comments create PAGE_ID \
+     --text "Your comment" \
+     --selected-text "exact text from the page" \
+     --start-offset START \
+     --end-offset END \
+     --source-page-id SOURCE_PAGE_ID
+   ```
+
+4. Verify:
+   ```bash
+   uvx expedait-cli comments list PAGE_ID --format json
+   ```
+
+## Options
+
+- `--text` (required): Your comment content
+- `--selected-text` (required): Exact text from the page
+- `--start-offset` / `--end-offset` (required): Character offsets
+- `--source-page-id` (optional): The page your agent is working from
+- `--parent-comment-id` (optional): Reply to an existing comment
+
+## Resolving and Deleting Comments
+
+```bash
+# Mark a comment as resolved
+uvx expedait-cli comments resolve PAGE_ID COMMENT_ID
+
+# Delete a comment
+uvx expedait-cli comments delete PAGE_ID COMMENT_ID
+```
+
+## Tips
+
+- Comments are auto-marked as agent comments (`is_agent_comment: true`)
+- Use `--source-page-id` for cross-page notification workflows
+- Keep comments actionable: describe what diverged and why
+- Output format auto-detects: text for terminal, JSON when piped. Use `--format json` to force JSON output
