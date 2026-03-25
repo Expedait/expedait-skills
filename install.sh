@@ -7,6 +7,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/skills"
 TARGET_DIR="${TARGET_DIR:-.}"
+VERSION="0.1.0"
+VERSION_FILE=".expedait-skills-version"
+GITHUB_LATEST="https://api.github.com/repos/Expedait/expedait-skills/releases/latest"
 
 # Colors
 RED='\033[0;31m'
@@ -30,6 +33,8 @@ Options:
                       claude-code, cursor, opencode, codex
   --all             Install for all detected agents
   --target <dir>    Target project directory (default: current directory)
+  --check           Check if installed skills are up to date
+  --version         Show installed version
   -h, --help        Show this help
 
 Examples:
@@ -38,6 +43,34 @@ Examples:
   ./install.sh --all              # Install for all agents
   ./install.sh --target ~/myapp   # Install into a specific project
 EOF
+}
+
+# --- Version check ---
+check_update() {
+  local installed="unknown"
+  if [[ -f "$TARGET_DIR/$VERSION_FILE" ]]; then
+    installed=$(cat "$TARGET_DIR/$VERSION_FILE")
+  fi
+
+  local latest
+  latest=$(curl -sf "$GITHUB_LATEST" | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//') || true
+
+  if [[ -z "$latest" ]]; then
+    warn "Could not reach GitHub API to check for updates"
+    echo "  Installed: $installed"
+    return
+  fi
+
+  if [[ "$installed" == "$latest" ]]; then
+    info "Up to date (v$installed)"
+  else
+    warn "Installed: v$installed, Latest: v$latest"
+    echo "  Run: curl -fsSL https://raw.githubusercontent.com/Expedait/expedait-skills/main/install.sh | bash"
+  fi
+}
+
+write_version() {
+  echo "$VERSION" > "$TARGET_DIR/$VERSION_FILE"
 }
 
 # --- Claude Code ---
@@ -415,6 +448,8 @@ main() {
       --agent)    agent="$2"; shift 2 ;;
       --all)      all=true; shift ;;
       --target)   TARGET_DIR="$2"; shift 2 ;;
+      --check)    TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"; check_update; exit 0 ;;
+      --version)  echo "$VERSION"; exit 0 ;;
       -h|--help)  usage; exit 0 ;;
       *)          error "Unknown option: $1"; usage; exit 1 ;;
     esac
@@ -441,6 +476,8 @@ main() {
       install_agent "$a"
     done
   fi
+
+  write_version
 
   echo ""
   echo -e "${BOLD}Next steps:${NC}"

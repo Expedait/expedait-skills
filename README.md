@@ -18,9 +18,6 @@ Step-by-step guides for AI coding agents that use [Expedait](https://expedait.co
 **Script installer** (Claude Code, Cursor, OpenCode, Codex):
 
 ```bash
-npx expedait-skills@latest install
-
-# Or manually with curl
 curl -fsSL https://raw.githubusercontent.com/Expedait/expedait-skills/main/install.sh | bash
 ```
 
