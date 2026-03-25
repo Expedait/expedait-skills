@@ -1,0 +1,169 @@
+name: Test install
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test-skill-sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify skill source files exist and have frontmatter
+        run: |
+          for skill in expedait-download expedait-comment expedait-review; do
+            file="skills/$skill/SKILL.md"
+            test -f "$file" || { echo "Missing $file"; exit 1; }
+            head -1 "$file" | grep -q '^---' || { echo "$file missing frontmatter"; exit 1; }
+            grep -q '^name:' "$file" || { echo "$file missing name field"; exit 1; }
+            grep -q '^description:' "$file" || { echo "$file missing description field"; exit 1; }
+          done
+
+  test-plugin-metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate plugin.json
+        run: |
+          jq -e '.name' .claude-plugin/plugin.json
+          jq -e '.version' .claude-plugin/plugin.json
+          jq -e '.description' .claude-plugin/plugin.json
+
+      - name: Validate marketplace.json
+        run: |
+          jq -e '.name' .claude-plugin/marketplace.json
+          jq -e '.plugins | length > 0' .claude-plugin/marketplace.json
+
+      - name: Versions match between plugin.json and install.sh
+        run: |
+          PLUGIN_VERSION=$(jq -r .version .claude-plugin/plugin.json)
+          SCRIPT_VERSION=$(grep '^VERSION=' install.sh | head -1 | cut -d'"' -f2)
+          echo "plugin.json: $PLUGIN_VERSION | install.sh: $SCRIPT_VERSION"
+          [ "$PLUGIN_VERSION" = "$SCRIPT_VERSION" ] || { echo "Version mismatch"; exit 1; }
+
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Run build.py
+        run: uv run build.py
+
+      - name: Verify generated platform files exist
+        run: |
+          for skill in expedait-download expedait-comment expedait-review; do
+            test -f "platforms/codex/skills/$skill/SKILL.md"
+            test -f "platforms/opencode/commands/$skill.md"
+            test -f "platforms/gemini/commands/$skill.toml"
+            test -f "platforms/cursor/rules/$skill.mdc"
+          done
+
+  test-cli-flags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "--help exits 0"
+        run: bash install.sh --help
+
+      - name: "--version outputs the version"
+        run: |
+          VERSION=$(bash install.sh --version)
+          [ -n "$VERSION" ] || { echo "Empty version"; exit 1; }
+          EXPECTED=$(grep '^VERSION=' install.sh | head -1 | cut -d'"' -f2)
+          [ "$VERSION" = "$EXPECTED" ]
+
+  test-install-per-agent:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        agent: [claude-code, cursor, opencode, codex, gemini]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install for ${{ matrix.agent }}
+        run: |
+          mkdir -p /tmp/test-project
+          bash install.sh --agent ${{ matrix.agent }} --target /tmp/test-project
+
+      - name: Verify installed files
+        run: |
+          case "${{ matrix.agent }}" in
+            claude-code)
+              for skill in expedait-download expedait-comment expedait-review; do
+                test -f "/tmp/test-project/.claude/skills/$skill/SKILL.md"
+                test -s "/tmp/test-project/.claude/skills/$skill/SKILL.md"
+              done
+              ;;
+            cursor)
+              for rule in expedait-download expedait-comment expedait-review; do
+                test -f "/tmp/test-project/.cursor/rules/$rule.mdc"
+                test -s "/tmp/test-project/.cursor/rules/$rule.mdc"
+              done
+              ;;
+            opencode)
+              for cmd in expedait-download expedait-comment expedait-review; do
+                test -f "/tmp/test-project/.opencode/commands/$cmd.md"
+                test -s "/tmp/test-project/.opencode/commands/$cmd.md"
+              done
+              ;;
+            codex)
+              for skill in expedait-download expedait-comment expedait-review; do
+                test -f "/tmp/test-project/.codex/skills/$skill/SKILL.md"
+                test -s "/tmp/test-project/.codex/skills/$skill/SKILL.md"
+              done
+              ;;
+            gemini)
+              for cmd in expedait-download expedait-comment expedait-review; do
+                test -f "/tmp/test-project/.gemini/commands/$cmd.toml"
+                test -s "/tmp/test-project/.gemini/commands/$cmd.toml"
+              done
+              ;;
+          esac
+
+      - name: Verify version file matches script
+        run: |
+          EXPECTED=$(grep '^VERSION=' install.sh | head -1 | cut -d'"' -f2)
+          ACTUAL=$(cat /tmp/test-project/.expedait-skills-version)
+          [ "$ACTUAL" = "$EXPECTED" ]
+
+  test-install-all:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install --all
+        run: |
+          mkdir -p /tmp/test-project
+          bash install.sh --all --target /tmp/test-project
+
+      - name: Verify all platforms installed
+        run: |
+          for skill in expedait-download expedait-comment expedait-review; do
+            test -s /tmp/test-project/.claude/skills/$skill/SKILL.md
+            test -s /tmp/test-project/.cursor/rules/$skill.mdc
+            test -s /tmp/test-project/.opencode/commands/$skill.md
+            test -s /tmp/test-project/.codex/skills/$skill/SKILL.md
+            test -s /tmp/test-project/.gemini/commands/$skill.toml
+          done
+          test -f /tmp/test-project/.expedait-skills-version
+
+  test-install-autodetect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install with auto-detect (no --agent flag)
+        run: |
+          mkdir -p /tmp/test-project
+          bash install.sh --target /tmp/test-project
+
+      - name: Verify at least one agent was installed
+        run: |
+          test -f /tmp/test-project/.expedait-skills-version
+          # Default fallback is claude-code when no agent is detected
+          test -f /tmp/test-project/.claude/skills/expedait-download/SKILL.md
