@@ -7,7 +7,7 @@ Your code diverges from a specification, or you've found an issue in a spec page
 ## Prerequisites
 
 - [Expedait CLI](https://github.com/Expedait/expedait-cli) — run via `uvx expedait-cli` (no install needed)
-- Know the page ID and the text you want to comment on
+- Project initialized with `uvx expedait-cli init` (or know the page ID and the text you want to comment on)
 
 ## Steps
 
@@ -60,8 +60,19 @@ start = content.index(selected)
 end = start + len(selected)
 ```
 
+## Resolving and Deleting Comments
+
+```bash
+# Mark a comment as resolved
+uvx expedait-cli comments resolve PAGE_ID COMMENT_ID
+
+# Delete a comment
+uvx expedait-cli comments delete PAGE_ID COMMENT_ID
+```
+
 ## Tips
 
 - Comments created via CLI are automatically marked as agent comments (`is_agent_comment: true`)
 - Use `--source-page-id` to link the comment back to the page your agent is responsible for — this enables cross-page notification workflows
 - Keep comments actionable: describe what diverged and why
+- Output format auto-detects: text for terminal, JSON when piped. Use `--format json` to force JSON output

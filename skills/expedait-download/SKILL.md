@@ -1,6 +1,6 @@
 ---
 name: expedait-download
-description: "Download all specification pages for an Expedait project. Use when you need project context, specs, or requirements before implementing or reviewing code."
+description: "Download all specification pages for an Expedait project. Use this skill whenever the user mentions Expedait specs, project requirements, downloading context, or needs to understand what a project is about before implementing or reviewing code. Also trigger when the user asks to 'get the specs', 'fetch requirements', or 'pull down the project docs'."
 user-invocable: true
 allowed-tools: Bash, Read, Glob, Grep
 argument-hint: "[project-id]"
@@ -8,21 +8,28 @@ argument-hint: "[project-id]"
 
 # Download Project Context from Expedait
 
-Use `uvx expedait-cli` for all commands (do NOT use `pip install`).
+Use `uvx expedait-cli` for all commands — it runs in an isolated environment via uv, so no global install or virtual environment is needed.
 
 ## Steps
 
-1. If no project ID was given via $ARGUMENTS, list available projects:
+1. If the project has not been initialized yet, run:
    ```bash
-   uvx expedait-cli projects list --format json
+   uvx expedait-cli init
+   ```
+   This creates `.expedait/settings.json` with tenant and project IDs.
+
+2. If no project ID was given via $ARGUMENTS, list available projects:
+   ```bash
+   uvx expedait-cli projects list
    ```
 
-2. Download all spec pages:
+3. Download all spec pages:
    ```bash
-   uvx expedait-cli projects download PROJECT_ID --output-dir ./specs
+   uvx expedait-cli projects download PROJECT_ID
    ```
+   Downloads to `.expedait/context/` by default.
 
-3. Read the downloaded specs in `./specs/` to understand the project requirements.
+4. Read the downloaded specs in `.expedait/context/` to understand the project requirements.
 
 ## Single page alternative
 
@@ -31,14 +38,15 @@ Use `uvx expedait-cli` for all commands (do NOT use `pip install`).
 uvx expedait-cli pages get PAGE_ID
 
 # Full context (content + comments + dependencies)
-uvx expedait-cli pages full PAGE_ID --format json
+uvx expedait-cli pages full PAGE_ID
 
 # Download as ZIP
-uvx expedait-cli pages download PAGE_ID --output-dir ./specs
+uvx expedait-cli pages download PAGE_ID
 ```
 
 ## Tips
 
-- Use `--format json` when piping output to other tools
+- Output format auto-detects: text for terminal, JSON when piped. Use `--format json` to force JSON output
 - `pages full` includes dependency info — useful for understanding page relationships
 - Page images referenced as `![name](/api/v1/pages/files/{file_id})` are included in ZIP downloads
+- Settings are resolved in order: CLI flag → environment variable → local config → home directory config

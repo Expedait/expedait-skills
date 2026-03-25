@@ -26,7 +26,7 @@ curl -fsSL https://raw.githubusercontent.com/Expedait/expedait-skills/main/insta
 
 The script installer auto-detects your agent and sets up the right config files. See [Agent Setup](#agent-setup) for manual instructions.
 
-### 2. Authenticate with Expedait
+### 2. Authenticate and initialize
 
 The CLI runs via [`uvx`](https://docs.astral.sh/uv/) — no global install needed:
 
@@ -34,11 +34,22 @@ The CLI runs via [`uvx`](https://docs.astral.sh/uv/) — no global install neede
 # Interactive login
 uvx expedait-cli auth login
 
+# Check auth status
+uvx expedait-cli auth status
+
 # Or set environment variables (for CI / agent environments)
 export EXPEDAIT_TOKEN="your-jwt-token"
 export EXPEDAIT_API_URL="https://your-instance.expedait.com"
 export EXPEDAIT_TENANT_ID=1
 ```
+
+Then initialize your project directory:
+
+```bash
+uvx expedait-cli init
+```
+
+This creates `.expedait/settings.json` with your tenant and project IDs. Settings are resolved in order: CLI flag → environment variable → local config → home directory config.
 
 ### 3. Use a skill
 
@@ -57,7 +68,7 @@ Or just ask naturally: *"Download the specs for project 1 and review my code aga
 |-------|-------------|
 | [Download Project Context](skills/download-project-context.md) | Download all spec pages for a project |
 | [Post a Comment](skills/post-comment.md) | Post an inline comment on a spec page |
-| [Review and Comment](skills/review-and-comment.md) | End-to-end: read specs, review code, post comments |
+| [Review](skills/review-and-comment.md) | Check PRD/vision alignment against code — scopes to branch changes or full audit |
 
 ## Agent Setup
 
@@ -115,6 +126,7 @@ Or add to your `CLAUDE.md`:
 ## Expedait Integration
 
 Use `uvx expedait-cli` (not `pip`) for all Expedait commands.
+Run `uvx expedait-cli init` to initialize a project directory.
 See the skills in `.claude/skills/expedait-*` for workflows.
 ```
 
