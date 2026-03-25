@@ -1,0 +1,72 @@
+name: Test install
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test-install:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        agent: [claude-code, cursor, opencode, codex, gemini]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install for ${{ matrix.agent }}
+        run: |
+          mkdir -p /tmp/test-project
+          bash install.sh --agent ${{ matrix.agent }} --target /tmp/test-project
+
+      - name: Verify installed files
+        run: |
+          case "${{ matrix.agent }}" in
+            claude-code)
+              for skill in expedait-download expedait-comment expedait-review; do
+                test -f "/tmp/test-project/.claude/skills/$skill/SKILL.md"
+              done
+              ;;
+            cursor)
+              for rule in expedait-download expedait-comment expedait-review; do
+                test -f "/tmp/test-project/.cursor/rules/$rule.mdc"
+              done
+              ;;
+            opencode)
+              for cmd in expedait-download expedait-comment expedait-review; do
+                test -f "/tmp/test-project/.opencode/commands/$cmd.md"
+              done
+              ;;
+            codex)
+              for skill in expedait-download expedait-comment expedait-review; do
+                test -f "/tmp/test-project/.codex/skills/$skill/SKILL.md"
+              done
+              ;;
+            gemini)
+              for cmd in expedait-download expedait-comment expedait-review; do
+                test -f "/tmp/test-project/.gemini/commands/$cmd.toml"
+              done
+              ;;
+          esac
+
+      - name: Verify version file
+        run: test -f /tmp/test-project/.expedait-skills-version
+
+  test-install-all:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install --all
+        run: |
+          mkdir -p /tmp/test-project
+          bash install.sh --all --target /tmp/test-project
+
+      - name: Verify all platforms installed
+        run: |
+          test -f /tmp/test-project/.claude/skills/expedait-download/SKILL.md
+          test -f /tmp/test-project/.cursor/rules/expedait-download.mdc
+          test -f /tmp/test-project/.opencode/commands/expedait-download.md
+          test -f /tmp/test-project/.codex/skills/expedait-download/SKILL.md
+          test -f /tmp/test-project/.gemini/commands/expedait-download.toml
+          test -f /tmp/test-project/.expedait-skills-version
