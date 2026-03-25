@@ -1,0 +1,28 @@
+name: Check platforms sync
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Rebuild and check for drift
+        run: |
+          uv run build.py
+          if ! git diff --quiet platforms/; then
+            echo "::error::platforms/ is out of sync with skills/. Run 'uv run build.py' and commit."
+            git diff platforms/
+            exit 1
+          fi
+          if [ -n "$(git ls-files --others --exclude-standard platforms/)" ]; then
+            echo "::error::platforms/ has untracked files. Run 'uv run build.py' and commit."
+            git ls-files --others --exclude-standard platforms/
+            exit 1
+          fi

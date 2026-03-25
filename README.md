@@ -15,7 +15,7 @@ Step-by-step guides for AI coding agents that use [Expedait](https://expedait.co
 /plugin install expedait-skills@expedait
 ```
 
-**Script installer** (Claude Code, Cursor, OpenCode, Codex):
+**Script installer** (Claude Code, Cursor, OpenCode, Codex, Gemini CLI):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Expedait/expedait-skills/main/install.sh | bash
@@ -148,21 +148,52 @@ Cursor's agent will pick it up automatically when Expedait-related questions com
 
 ### OpenCode
 
-The installer appends Expedait instructions to your `AGENTS.md`:
+The installer creates commands in `.opencode/commands/` using the native command format:
 
 ```bash
 ./install.sh --agent opencode
 ```
 
-If `AGENTS.md` doesn't exist, it creates one. If it does, it appends an `## Expedait Integration` section.
+```
+.opencode/commands/
+  expedait-download.md
+  expedait-comment.md
+  expedait-review.md
+```
+
+These become available as `/expedait-download`, `/expedait-comment`, and `/expedait-review`.
 
 ### Codex (OpenAI)
 
-Same as OpenCode — the installer appends to `AGENTS.md`, which Codex reads automatically:
+The installer creates skills in `.codex/skills/` using the native SKILL.md format:
 
 ```bash
 ./install.sh --agent codex
 ```
+
+```
+.codex/skills/
+  expedait-download/SKILL.md
+  expedait-comment/SKILL.md
+  expedait-review/SKILL.md
+```
+
+### Gemini CLI
+
+The installer creates custom commands in `.gemini/commands/` using the native TOML format:
+
+```bash
+./install.sh --agent gemini
+```
+
+```
+.gemini/commands/
+  expedait-download.toml
+  expedait-comment.toml
+  expedait-review.toml
+```
+
+These become available as `/expedait-download`, `/expedait-comment`, and `/expedait-review`.
 
 ### All agents at once
 
@@ -181,13 +212,33 @@ Skills are structured, agent-oriented guides that describe how to accomplish com
 
 They are designed to be consumed by AI coding agents (Claude Code, Cursor, OpenCode, Codex, etc.) as part of their tool documentation, but are also useful as human reference.
 
+## Architecture
+
+Skills are defined once in `skills/*/SKILL.md` (the single source of truth) and transformed into platform-specific formats by `build.py`:
+
+```
+skills/                        # canonical source (SKILL.md format)
+  expedait-download/SKILL.md
+  expedait-comment/SKILL.md
+  expedait-review/SKILL.md
+
+platforms/                     # generated — do not edit directly
+  codex/skills/*/SKILL.md     # same format as Claude Code
+  opencode/commands/*.md       # OpenCode command format
+  gemini/commands/*.toml       # Gemini CLI TOML format
+  cursor/rules/*.mdc           # Cursor rule format
+```
+
+Claude Code uses `skills/` directly (native format). Other platforms use files from `platforms/`.
+
 ## Contributing
 
-Contributions are welcome! To add a new skill:
+To add or modify a skill:
 
-1. Create a markdown file in `skills/` following the existing format
-2. Add it to the table in this README
-3. Submit a pull request
+1. Edit the SKILL.md in `skills/` (not in `platforms/`)
+2. Run `uv run build.py` to regenerate platform files
+3. Add the skill to the table in this README
+4. Submit a pull request (CI checks that `platforms/` is in sync)
 
 ## License
 

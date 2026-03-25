@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/skills"
+PLATFORMS_DIR="$SCRIPT_DIR/platforms"
 TARGET_DIR="${TARGET_DIR:-.}"
 VERSION="0.1.0"
 VERSION_FILE=".expedait-skills-version"
@@ -30,7 +31,7 @@ Install Expedait skills for your AI coding agent.
 
 Options:
   --agent <name>    Install for a specific agent:
-                      claude-code, cursor, opencode, codex
+                      claude-code, cursor, opencode, codex, gemini
   --all             Install for all detected agents
   --target <dir>    Target project directory (default: current directory)
   --check           Check if installed skills are up to date
@@ -40,6 +41,7 @@ Options:
 Examples:
   ./install.sh                    # Auto-detect and install
   ./install.sh --agent cursor     # Install for Cursor only
+  ./install.sh --agent gemini     # Install for Gemini CLI
   ./install.sh --all              # Install for all agents
   ./install.sh --target ~/myapp   # Install into a specific project
 EOF
@@ -77,7 +79,6 @@ write_version() {
 install_claude_code() {
   local dir="$TARGET_DIR/.claude/skills"
 
-  # Copy each skill's SKILL.md from the source
   for skill in expedait-download expedait-comment expedait-review; do
     if [[ ! -f "$SKILLS_DIR/$skill/SKILL.md" ]]; then
       error "Missing skill source: $SKILLS_DIR/$skill/SKILL.md"
@@ -96,189 +97,78 @@ install_claude_code() {
 # --- Cursor ---
 install_cursor() {
   local dir="$TARGET_DIR/.cursor/rules"
+  local src="$PLATFORMS_DIR/cursor/rules"
   mkdir -p "$dir"
 
-  cat > "$dir/expedait.mdc" <<'RULE'
----
-description: "Expedait spec management — download project specs, post inline comments, and review code against specifications. Activate when the user mentions Expedait, specs, specifications, or project requirements."
-alwaysApply: false
----
-
-# Expedait Integration
-
-Use `uvx expedait-cli` for all Expedait commands — it runs in an isolated environment via uv, so no global install or virtual environment is needed.
-
-## Authentication
-
-The user must authenticate first:
-```bash
-uvx expedait-cli auth login
-uvx expedait-cli auth status  # verify credentials
-```
-
-Or via environment variables: `EXPEDAIT_TOKEN`, `EXPEDAIT_API_URL`, `EXPEDAIT_TENANT_ID`.
-
-## Project Setup
-
-Initialize the project directory (creates `.expedait/settings.json`):
-```bash
-uvx expedait-cli init
-```
-
-Settings are resolved in order: CLI flag → environment variable → local config → home directory config.
-
-## Download Project Specs
-
-```bash
-uvx expedait-cli projects list
-uvx expedait-cli projects download PROJECT_ID
-```
-
-Downloaded specs are markdown files organized by phase in `.expedait/context/`.
-
-## Post a Comment
-
-When code diverges from a spec, post an inline comment:
-
-```bash
-# Get page content
-uvx expedait-cli pages get PAGE_ID
-
-# Post comment with text selection
-uvx expedait-cli comments create PAGE_ID \
-  --text "Your comment" \
-  --selected-text "exact text from the page" \
-  --start-offset START --end-offset END
-
-# Resolve or delete a comment
-uvx expedait-cli comments resolve PAGE_ID COMMENT_ID
-uvx expedait-cli comments delete PAGE_ID COMMENT_ID
-```
-
-Compute offsets: `start = content.index(selected_text)`, `end = start + len(selected_text)`.
-
-## Review Code Against Specs
-
-Automatically scopes to branch changes on feature branches, full audit on default branch:
-
-```bash
-# Determine scope (feature branch)
-MERGE_BASE=$(git merge-base HEAD origin/main)
-git diff --name-only "$MERGE_BASE"..HEAD
-
-# Fetch fresh specs — focus on PRD and product vision
-uvx expedait-cli projects download PROJECT_ID
-```
-
-1. Compare PRD and vision specs against code in scope
-2. Produce a local consistency report (Conflicts, Missing, Unspecified, Aligned)
-3. Does NOT auto-post comments — use `comments create` for findings worth flagging
-
-Flag: conflicts (spec says X, code does Y), missing requirements, unspecified code.
-Skip: naming differences, open implementation details, WIP code.
-
-## Tips
-
-- Output format auto-detects: text for terminal, JSON when piped. Use `--format json` to force JSON output
-- Comments are auto-marked as agent comments
-- Use `--source-page-id` to link comments to the page your agent owns
-RULE
-
-  info "Cursor: installed rule at $dir/expedait.mdc"
-}
-
-# --- AGENTS.md (OpenCode / Codex) ---
-install_agents_md() {
-  local file="$TARGET_DIR/AGENTS.md"
-  local section_marker="## Expedait Integration"
-
-  # Check if section already exists
-  if [[ -f "$file" ]] && grep -q "$section_marker" "$file"; then
-    warn "AGENTS.md already contains Expedait section — skipping"
-    return
+  # Remove old monolithic rule if present
+  if [[ -f "$dir/expedait.mdc" ]]; then
+    rm "$dir/expedait.mdc"
+    info "Cursor: removed old combined expedait.mdc (replaced by per-skill files)"
   fi
 
-  local content
-  content=$(cat <<'AGENTS'
+  for mdc in "$src"/*.mdc; do
+    local name
+    name=$(basename "$mdc")
+    cp "$mdc" "$dir/$name"
+  done
 
-## Expedait Integration
-
-Use `uvx expedait-cli` for all Expedait commands — it runs in an isolated environment via uv, so no global install or virtual environment is needed.
-
-### Authentication
-
-```bash
-uvx expedait-cli auth login
-uvx expedait-cli auth status  # verify credentials
-```
-
-Or set environment variables: `EXPEDAIT_TOKEN`, `EXPEDAIT_API_URL`, `EXPEDAIT_TENANT_ID`.
-
-### Project Setup
-
-Initialize the project directory (creates `.expedait/settings.json`):
-```bash
-uvx expedait-cli init
-```
-
-Settings are resolved in order: CLI flag → environment variable → local config → home directory config.
-
-### Download Project Specs
-
-```bash
-uvx expedait-cli projects list
-uvx expedait-cli projects download PROJECT_ID
-```
-
-Downloads to `.expedait/context/` by default.
-
-### Post a Comment on a Spec Page
-
-```bash
-uvx expedait-cli pages get PAGE_ID
-uvx expedait-cli comments create PAGE_ID \
-  --text "Your comment" \
-  --selected-text "exact text from page" \
-  --start-offset START --end-offset END
-```
-
-Compute offsets: `start = content.index(selected_text)`, `end = start + len(selected_text)`.
-
-### Review Code Against Specs
-
-Scopes automatically to branch changes on feature branches, full audit on default branch:
-
-```bash
-MERGE_BASE=$(git merge-base HEAD origin/main)
-git diff --name-only "$MERGE_BASE"..HEAD  # scope on feature branches
-uvx expedait-cli projects download PROJECT_ID  # fetch fresh specs
-```
-
-1. Focus on PRD and product vision specs
-2. Produce a local consistency report (Conflicts, Missing, Unspecified, Aligned)
-3. Does NOT auto-post comments — use `comments create` for findings worth flagging
-
-### Tips
-
-- Output format auto-detects: text for terminal, JSON when piped. Use `--format json` to force JSON output
-- Comments are auto-marked as agent comments
-- Use `--source-page-id` to link comments back to your agent's page
-- Resolve comments with `uvx expedait-cli comments resolve PAGE_ID COMMENT_ID`
-AGENTS
-)
-
-  if [[ -f "$file" ]]; then
-    echo "$content" >> "$file"
-    info "AGENTS.md: appended Expedait section"
-  else
-    echo "# Project Instructions" > "$file"
-    echo "$content" >> "$file"
-    info "AGENTS.md: created with Expedait section"
-  fi
+  info "Cursor: installed rules in $dir/"
+  info "  expedait-download.mdc"
+  info "  expedait-comment.mdc"
+  info "  expedait-review.mdc"
 }
 
-install_opencode() { install_agents_md; }
-install_codex()    { install_agents_md; }
+# --- OpenCode ---
+install_opencode() {
+  local dir="$TARGET_DIR/.opencode/commands"
+  local src="$PLATFORMS_DIR/opencode/commands"
+  mkdir -p "$dir"
+
+  for cmd in "$src"/*.md; do
+    local name
+    name=$(basename "$cmd")
+    cp "$cmd" "$dir/$name"
+  done
+
+  info "OpenCode: installed commands in $dir/"
+  info "  /expedait-download  — download project specs"
+  info "  /expedait-comment   — post a comment on a spec page"
+  info "  /expedait-review    — review code against specs"
+}
+
+# --- Codex ---
+install_codex() {
+  local dir="$TARGET_DIR/.codex/skills"
+  local src="$PLATFORMS_DIR/codex/skills"
+
+  for skill in expedait-download expedait-comment expedait-review; do
+    mkdir -p "$dir/$skill"
+    cp "$src/$skill/SKILL.md" "$dir/$skill/SKILL.md"
+  done
+
+  info "Codex: installed skills in $dir/"
+  info "  expedait-download  — download project specs"
+  info "  expedait-comment   — post a comment on a spec page"
+  info "  expedait-review    — review code against specs"
+}
+
+# --- Gemini CLI ---
+install_gemini() {
+  local dir="$TARGET_DIR/.gemini/commands"
+  local src="$PLATFORMS_DIR/gemini/commands"
+  mkdir -p "$dir"
+
+  for toml in "$src"/*.toml; do
+    local name
+    name=$(basename "$toml")
+    cp "$toml" "$dir/$name"
+  done
+
+  info "Gemini CLI: installed commands in $dir/"
+  info "  /expedait-download  — download project specs"
+  info "  /expedait-comment   — post a comment on a spec page"
+  info "  /expedait-review    — review code against specs"
+}
 
 # --- Auto-detect ---
 detect_agents() {
@@ -291,17 +181,17 @@ detect_agents() {
   if [[ -d "$TARGET_DIR/.cursor" ]]; then
     agents+=("cursor")
   fi
-  # OpenCode: check for AGENTS.md or opencode command
-  if command -v opencode &>/dev/null; then
+  # OpenCode: check for .opencode dir or opencode command
+  if [[ -d "$TARGET_DIR/.opencode" ]] || command -v opencode &>/dev/null; then
     agents+=("opencode")
   fi
   # Codex: check for .codex dir or codex command
   if [[ -d "$HOME/.codex" ]] || command -v codex &>/dev/null; then
     agents+=("codex")
   fi
-  # If AGENTS.md exists, include it
-  if [[ -f "$TARGET_DIR/AGENTS.md" ]] && [[ ${#agents[@]} -eq 0 ]]; then
-    agents+=("opencode")
+  # Gemini CLI: check for .gemini dir or gemini command
+  if [[ -d "$HOME/.gemini" ]] || command -v gemini &>/dev/null; then
+    agents+=("gemini")
   fi
   # Default to claude-code if nothing detected
   if [[ ${#agents[@]} -eq 0 ]]; then
@@ -316,6 +206,7 @@ install_agent() {
     cursor)      install_cursor ;;
     opencode)    install_opencode ;;
     codex)       install_codex ;;
+    gemini)      install_gemini ;;
     *) error "Unknown agent: $1"; exit 1 ;;
   esac
 }
@@ -348,7 +239,9 @@ main() {
   elif $all; then
     install_claude_code
     install_cursor
-    install_agents_md
+    install_opencode
+    install_codex
+    install_gemini
   else
     local detected
     detected=$(detect_agents)
