@@ -4,6 +4,8 @@
 
 Step-by-step guides for AI coding agents that use [Expedait](https://expedait.com) to manage project specifications.
 
+Expedait's spec model has four primitives: **objectives** (top-level goals that nest child deliverables), **deliverables** (the individual spec documents — formerly "pages"), **context** (the assembled LLM context for a deliverable), and **review** (scoring findings on a deliverable).
+
 ## Quickstart
 
 ### 1. Install skills into your project
@@ -23,16 +25,17 @@ curl -fsSL https://raw.githubusercontent.com/Expedait/expedait-skills/main/insta
 
 The script installer auto-detects your agent and sets up the right config files. See [Agent Setup](#agent-setup) for manual instructions.
 
-### 2. Authenticate and initialize
+### 2. Authenticate
 
-The CLI runs via [`uvx`](https://docs.astral.sh/uv/) — no global install needed:
+The CLI's package is `expedait-cli` and its entrypoint is `expedait`, so run it via
+[`uvx`](https://docs.astral.sh/uv/) as `uvx --from expedait-cli expedait` — no global install needed:
 
 ```bash
-# Interactive login
-uvx expedait-cli auth login
+# Interactive login (browser SSO or email/password)
+uvx --from expedait-cli expedait auth login
 
-# Check auth status
-uvx expedait-cli auth status
+# Check auth status, tenant, and workspace
+uvx --from expedait-cli expedait status
 
 # Or set environment variables (for CI / agent environments)
 export EXPEDAIT_TOKEN="your-jwt-token"
@@ -40,13 +43,9 @@ export EXPEDAIT_API_URL="https://your-instance.expedait.com"
 export EXPEDAIT_TENANT_ID=1
 ```
 
-Then initialize your project directory:
+Credentials are cached in `~/.expedait/config.json`. Settings are resolved in order: CLI flag → environment variable → `~/.expedait/config.json`. Pass the project per command (by ID, name, or interactively) — there is no separate init step.
 
-```bash
-uvx expedait-cli init
-```
-
-This creates `.expedait/settings.json` with your tenant and project IDs. Settings are resolved in order: CLI flag → environment variable → local config → home directory config.
+> **Prefer the hosted MCP server?** Add `https://mcp.expedait.org` to your AI client's connectors, sign in once, and pick a workspace — it exposes the same primitives (projects, deliverables, objectives, context, review, comments) without the CLI. See [Expedait's MCP docs](https://expedait.com).
 
 ### 3. Use a skill
 
@@ -63,9 +62,9 @@ Or just ask naturally: *"Download the specs for project 1 and review my code aga
 
 | Skill | Description |
 |-------|-------------|
-| [Download Project Context](skills/download-project-context.md) | Download all spec pages for a project |
-| [Post a Comment](skills/post-comment.md) | Post an inline comment on a spec page |
-| [Review](skills/review-and-comment.md) | Check PRD/vision alignment against code — scopes to branch changes or full audit |
+| [Download Project Context](skills/download-project-context.md) | Download a project's objectives, deliverables, and context |
+| [Post a Comment](skills/post-comment.md) | Post an inline comment on a deliverable |
+| [Review](skills/review-and-comment.md) | Check objective/PRD/vision alignment against code, and read review findings — scopes to branch changes or full audit |
 
 ## Agent Setup
 
@@ -122,8 +121,8 @@ Or add to your `CLAUDE.md`:
 ```markdown
 ## Expedait Integration
 
-Use `uvx expedait-cli` (not `pip`) for all Expedait commands.
-Run `uvx expedait-cli init` to initialize a project directory.
+Use `uvx --from expedait-cli expedait` (not `pip`) for all Expedait commands.
+Run `uvx --from expedait-cli expedait auth login` once to authenticate.
 See the skills in `.claude/skills/expedait-*` for workflows.
 ```
 

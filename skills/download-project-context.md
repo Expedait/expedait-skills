@@ -1,52 +1,55 @@
 # Skill: Download Project Context
 
+> Canonical source: [`expedait-download/SKILL.md`](expedait-download/SKILL.md). This file is a human-readable copy.
+
 ## When to Use
 
-You need all specification pages for a project to implement or review code. This gives you the full context in one command.
+You need the deliverables for a project to implement or review code. This gives you the full context in one command.
 
 ## Prerequisites
 
-- [Expedait CLI](https://github.com/Expedait/expedait-cli) — run via `uvx expedait-cli` (no install needed)
-- Know the project ID (use `expedait-cli projects list` to find it), or initialize a project first with `uvx expedait-cli init`
+- [Expedait CLI](https://github.com/Expedait/expedait-cli) — run via `uvx --from expedait-cli expedait` (no install needed)
+- Authenticated: `uvx --from expedait-cli expedait auth login`
+
+## The spec model
+
+Expedait organizes specs around four primitives:
+
+- **Objectives** — top-level goals; an objective is a deliverable that nests child deliverables (`parent_deliverable_id`).
+- **Deliverables** — the individual spec documents (product vision, PRD, BRD, persona, …). Formerly called "pages".
+- **Context** — the assembled LLM context for a deliverable: dependency deliverables, external sources, uploaded files.
+- **Review** — scoring findings on a deliverable (see the review skill).
 
 ## Steps
 
-### 1. Initialize the project (first time only)
+### 1. Authenticate (first time only)
 
 ```bash
-uvx expedait-cli init
+uvx --from expedait-cli expedait auth login
+uvx --from expedait-cli expedait status
 ```
 
-This creates `.expedait/settings.json` with your tenant and project IDs. After init, commands automatically use the stored project context.
+Credentials are cached in `~/.expedait/config.json`.
 
 ### 2. Find the project
 
 ```bash
-uvx expedait-cli projects list
+uvx --from expedait-cli expedait projects list
 ```
 
-Output (auto-detects format — text in terminal, JSON when piped):
-```json
-[
-  {"id": 1, "name": "My SaaS App", "type": "SaaS"},
-  {"id": 2, "name": "Data Pipeline", "type": "Data Processing"}
-]
-```
+`PROJECT` can be a numeric ID, a name (or substring), or omitted for interactive selection.
 
-### 3. Download all pages
+### 3. Download the context snapshot
 
 ```bash
-uvx expedait-cli projects download PROJECT_ID
+uvx --from expedait-cli expedait projects context PROJECT
 ```
 
-Downloads to `.expedait/context/` by default. This extracts a ZIP containing:
-- One `.md` file per page, organized by phase
-- A `README.md` with project metadata
-- Any file attachments in a `files/` subdirectory
+Writes to `.expedait/context/` by default (`--output-dir` to change). The snapshot contains:
+- One `.md` file per deliverable, grouped by phase
+- Per-deliverable JSON (comments, dependencies, history) — omit with `--without-full-pages`
 
-### 4. Read the specs
-
-The extracted files are plain markdown. Read them to understand the project requirements before implementing.
+### 4. Read the deliverables
 
 ```bash
 ls .expedait/context/
@@ -57,27 +60,30 @@ ls .expedait/context/
 #   prd.md
 #   brd.md
 #   user-persona.md
-# README.md
 ```
 
-## Alternative: Download a single page
-
-If you only need one page:
+## Drilling into a single deliverable
 
 ```bash
-# Print markdown content to stdout
-uvx expedait-cli pages get PAGE_ID
+# Print one deliverable's markdown content
+uvx --from expedait-cli expedait deliverables get DELIVERABLE_ID
 
-# Get full context (content + comments + dependencies + lock status)
-uvx expedait-cli pages full PAGE_ID
+# Specific sections: content, score, template, requirements, dependencies, …
+uvx --from expedait-cli expedait deliverables get DELIVERABLE_ID --include content,score,dependencies
 
-# Download as ZIP
-uvx expedait-cli pages download PAGE_ID
+# Full context: content + comments + dependencies + lock status
+uvx --from expedait-cli expedait deliverables inspect DELIVERABLE_ID
+
+# Assembled LLM context (dependency deliverables, external sources, files)
+uvx --from expedait-cli expedait context get DELIVERABLE_ID
+
+# An objective's descendant tree
+uvx --from expedait-cli expedait objectives overview DELIVERABLE_ID
 ```
 
 ## Tips
 
-- Output format auto-detects: text for terminal, JSON when piped. Use `--format json` to force JSON output
-- The `uvx expedait-cli pages full` command includes dependency information — useful for understanding page relationships
-- Page content may reference images via `![name](/api/v1/pages/files/{file_id})` — these are included in the ZIP download
-- Settings are resolved in order: CLI flag → environment variable → local `.expedait/settings.json` → `~/.expedait/config.json`
+- Output format auto-detects: text in a terminal, JSON when piped. Use `--format json` to force JSON.
+- `deliverables inspect` and `context get` include dependency relationships — useful for understanding how deliverables reference each other.
+- Settings resolution order: CLI flag → environment variable → `~/.expedait/config.json`.
+- The hosted MCP server (`https://mcp.expedait.org`) exposes the same primitives for AI clients that support connectors.
