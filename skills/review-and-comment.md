@@ -1,26 +1,43 @@
-# Skill: Review Code Against Specs
+# Skill: Review Code Against Deliverables
+
+> Canonical source: [`expedait-review/SKILL.md`](expedait-review/SKILL.md). This file is a human-readable copy.
 
 ## When to Use
 
-You want to check whether your code (or just recent branch changes) is aligned with the product vision and PRD. Useful before merging a feature branch, after a spec update, or as a periodic alignment audit.
-
-This skill produces a local report. It does not post comments back to Expedait — that's a deliberate follow-up via the comment skill.
+You want to check whether your code (or just recent branch changes) is aligned with the project's objectives, product vision, and PRD. Useful before merging a feature branch, after a deliverable update, or as a periodic alignment audit.
 
 ## Prerequisites
 
-- [Expedait CLI](https://github.com/Expedait/expedait-cli) — run via `uvx expedait-cli` (no install needed)
+- [Expedait CLI](https://github.com/Expedait/expedait-cli) — run via `uvx --from expedait-cli expedait` (no install needed)
 - A git repository with code to review
-- Project initialized with `uvx expedait-cli init` (or know the project ID)
+- Authenticated: `uvx --from expedait-cli expedait auth login`
 
-## How Scoping Works
+"Review" is a first-class Expedait primitive with two surfaces: running a review (posts
+findings) and reading the review issues already raised on a deliverable.
 
-The skill adapts its scope based on your git branch:
+## Fast path: let the CLI run the review
 
-- **Feature branch**: only files changed since the branch diverged from the default branch are reviewed
-- **Default branch** (main/master): the full codebase is reviewed against specs
-- **Explicit override**: the user can always ask for a full audit regardless of branch
+```bash
+uvx --from expedait-cli expedait review PROJECT --target-dir .
+```
 
-## Steps
+Analyzes the codebase against the project's deliverables and posts `DIVERGENCE` / `MISSING`
+comments back on the relevant deliverables. Flags: `--timeout MINUTES` (default 60),
+`--model claude|gemini|openai`, `--debug`.
+
+## Reading existing review findings
+
+```bash
+# Scoring findings on a deliverable (severity, description, criteria, anchors)
+uvx --from expedait-cli expedait review issues DELIVERABLE_ID --state open
+
+# Mute a finding that isn't actionable (--unmute to restore)
+uvx --from expedait-cli expedait review mute ISSUE_ID --note "tracked in JIRA-123"
+```
+
+## Manual path: scoped local report (no comments posted)
+
+When the user wants a local report before anything is written back.
 
 ### 1. Determine scope
 
@@ -33,114 +50,66 @@ MERGE_BASE=$(git merge-base HEAD "origin/$DEFAULT_BRANCH")
 git diff --name-only "$MERGE_BASE"..HEAD
 ```
 
-### 2. Fetch latest specs
+On the default branch (or when asked for a full audit), review the whole codebase.
+
+### 2. Fetch latest deliverables
 
 ```bash
-uvx expedait-cli projects download PROJECT_ID
+uvx --from expedait-cli expedait projects context PROJECT
 ```
 
-Downloads to `.expedait/context/` by default. Always fetch fresh to avoid false positives from stale copies.
+Writes to `.expedait/context/`. Always fetch fresh to avoid false positives from stale copies.
 
-### 3. Identify high-signal specs
+### 3. Identify high-signal deliverables
 
-Focus on specs that define product intent:
-
-- **Product Vision** — strategic direction and principles
+- **Objectives** — top-level goals and their descendant tree (`expedait objectives overview DELIVERABLE_ID`)
+- **Product Vision** — strategic direction
 - **PRD** — detailed feature requirements
 
 ```bash
-uvx expedait-cli pages list --project-id PROJECT_ID --format json
+uvx --from expedait-cli expedait deliverables list --project-id PROJECT_ID --format json
 ```
 
-### 4. Compare specs against code
+### 4. Compare deliverables against code
 
-For each high-signal spec, check the code in scope.
+**Flag (high signal):** requirements the code contradicts or ignores; objective/vision principles the implementation works against; features partially implemented in a way that changes behavior; new code not covered by any deliverable (scope creep).
 
-**Flag these (high signal):**
-- Requirements the code contradicts or ignores
-- Vision principles the implementation works against
-- Features partially implemented in a way that changes their behavior
-- New code not covered by any spec (scope creep)
-
-**Skip these (low signal):**
-- Minor naming differences
-- Implementation details specs leave open
-- Work-in-progress code
-- Specs describing future phases
+**Skip (low signal):** minor naming differences; implementation details left open; work-in-progress code; deliverables describing future phases.
 
 ### 5. Produce the consistency report
 
-Group findings by severity:
-
-| Category | Meaning | Post comment? |
-|----------|---------|---------------|
-| **Conflict** | Spec says X, code does Y | Only if user asks |
-| **Missing** | Spec requires it, code doesn't have it | Only if user asks |
-| **Unspecified** | Code does it, spec doesn't mention it | No — report only |
-| **Aligned** | Code matches spec | No — report only |
-
-Include page IDs and spec section references so findings are actionable.
-
-## Example: Branch Review
-
-```bash
-# 1. Scope to branch changes
-MERGE_BASE=$(git merge-base HEAD origin/main)
-git diff --name-only "$MERGE_BASE"..HEAD
-# src/auth/login.ts
-# src/auth/session.ts
-# src/api/webhooks.ts
-
-# 2. Fetch specs
-uvx expedait-cli projects download 1
-
-# 3. Read PRD and vision
-cat .expedait/context/01-conceptualization/product-vision.md
-cat .expedait/context/02-definition-ux/prd.md
-
-# 4. Compare and produce report
-```
-
-Example output:
+Group findings by severity and reference deliverable IDs:
 
 ```markdown
 ## Consistency Report
 
 **Scope:** branch `feature/auth-rework` — 3 files changed
-**Specs reviewed:** Product Vision (page 5), PRD (page 10)
+**Deliverables reviewed:** Objective "Launch v1" (deliverable 3), Product Vision (deliverable 5), PRD (deliverable 10)
 
 ### Conflicts
-- **PRD § "Authentication" (page 10)**: Spec requires OAuth2 PKCE flow, but `src/auth/login.ts` implements basic JWT.
+- **PRD § "Authentication" (deliverable 10)**: requires OAuth2 PKCE, but `src/auth/login.ts` implements basic JWT.
 
 ### Missing
-- **Vision § "Offline-first" (page 5)**: No local caching found in changed files.
+- **Vision § "Offline-first" (deliverable 5)**: no local caching found in changed files.
 
 ### Unspecified
-- `src/api/webhooks.ts` implements retry logic not in any spec.
+- `src/api/webhooks.ts` implements retry logic not in any deliverable.
 
 ### Aligned
 - Session management matches PRD § "Session Handling".
 ```
 
-## Posting Findings as Comments
+Objective- and vision-level conflicts outrank PRD-level ones — they indicate strategic misalignment.
 
-The report is for the developer to review locally. To post specific findings back to Expedait:
+## Posting findings back
 
-```bash
-# Post a single finding as an inline comment
-uvx expedait-cli comments create PAGE_ID \
-  --text "Consistency check: login.ts uses basic JWT, but PRD specifies OAuth2 PKCE." \
-  --selected-text "OAuth2 with PKCE flow for all client authentication" \
-  --start-offset 2150 \
-  --end-offset 2200
-```
-
-Or ask the agent to post all Conflict/Missing findings after reviewing the report.
+The report stays local until the developer decides what to flag. To post:
+- Use the comment skill for individual findings (`expedait comments create`), or
+- Re-run `expedait review` to let the CLI post `DIVERGENCE`/`MISSING` comments.
 
 ## Tips
 
-- Vision-level conflicts are higher priority than PRD-level ones — they indicate strategic misalignment
-- On feature branches, the merge-base diff is the right scope — reviewing unchanged files adds noise
-- If many divergences share a theme, group them rather than listing individually
-- Use `uvx expedait-cli pages full PAGE_ID` to check for existing comments before posting
-- Output format auto-detects: text for terminal, JSON when piped. Use `--format json` to force JSON output
+- On a feature branch, the merge-base diff is the right scope — reviewing unchanged files adds noise.
+- Always fetch fresh deliverables before reviewing.
+- Use `expedait deliverables inspect DELIVERABLE_ID` to see content + existing comments + dependencies in one call before posting.
+- Output format auto-detects: text in a terminal, JSON when piped. Use `--format json` to force JSON.

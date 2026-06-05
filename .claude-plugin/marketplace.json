@@ -11,7 +11,7 @@
     {
       "name": "expedait-skills",
       "source": "./",
-      "description": "AI agent skills for managing project specifications with Expedait — download specs, post inline comments, and review code against requirements."
+      "description": "AI agent skills for managing project specifications with Expedait — download objectives, deliverables and context, post inline comments, and review code against requirements."
     }
   ]
 }
