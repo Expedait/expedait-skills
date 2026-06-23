@@ -42,7 +42,7 @@ Commit both the skill changes and the regenerated `platforms/` directory. CI wil
 
 ## Releasing
 
-Tags follow semver: `v0.1.0`, `v0.2.0`, `v1.0.0`. Pushing a `v*` tag triggers `.github/workflows/publish.yml`, which publishes to npm and creates a GitHub release.
+Tags follow semver: `v0.1.0`, `v0.2.0`, `v1.0.0`. Pushing a `v*` tag triggers `.github/workflows/publish.yml`, which verifies the plugin/install versions match the tag and then creates a GitHub release (`gh release create --generate-notes`). There is no npm publish — the skills are distributed through the Claude Code plugin marketplace and `install.sh`, which copy `SKILL.md` / `platforms/` straight from the repo.
 
 Version must be updated in two places (CI enforces they match the tag):
 
