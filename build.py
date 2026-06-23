@@ -84,6 +84,30 @@ def build_codex(skill: dict, out_dir: Path):
     dest.write_text("\n".join(lines))
 
 
+def build_pi(skill: dict, out_dir: Path):
+    """Pi (pi.dev) follows the Agent Skills standard: .pi/skills/<name>/SKILL.md.
+
+    Pi's frontmatter recognizes name, description, and allowed-tools; user-invocable
+    and argument-hint are not Pi fields, so they are omitted. $ARGUMENTS works natively.
+    """
+    name = skill["name"]
+    dest = out_dir / "pi" / "skills" / name / "SKILL.md"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    lines = [
+        "---",
+        f'name: {name}',
+        f'description: "{skill["description"]}"',
+    ]
+    if skill["allowed-tools"]:
+        lines.append(f'allowed-tools: {skill["allowed-tools"]}')
+    lines.append("---")
+    lines.append("")
+    lines.append(skill["body"])
+
+    dest.write_text("\n".join(lines))
+
+
 def build_opencode(skill: dict, out_dir: Path):
     """OpenCode uses .md with YAML frontmatter. $ARGUMENTS works natively."""
     name = skill["name"]
@@ -161,6 +185,7 @@ def build_all():
 
         skill = parse_skill_md(source)
         build_codex(skill, PLATFORMS_DIR)
+        build_pi(skill, PLATFORMS_DIR)
         build_opencode(skill, PLATFORMS_DIR)
         build_gemini(skill, PLATFORMS_DIR)
         build_cursor(skill, PLATFORMS_DIR)

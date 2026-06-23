@@ -17,7 +17,7 @@ Expedait's spec model has four primitives: **objectives** (top-level goals that 
 /plugin install expedait-skills@expedait
 ```
 
-**Script installer** (Claude Code, Cursor, OpenCode, Codex, Gemini CLI):
+**Script installer** (Claude Code, Cursor, OpenCode, Codex, Gemini CLI, Pi):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Expedait/expedait-skills/main/install.sh | bash
@@ -209,6 +209,25 @@ The installer creates custom commands in `.gemini/commands/` using the native TO
 
 These become available as `/expedait-download`, `/expedait-author`, `/expedait-process`, `/expedait-comment`, and `/expedait-review`.
 
+### Pi (pi.dev)
+
+The installer creates skills in `.pi/skills/` using Pi's native [Agent Skills standard](https://pi.dev/docs/latest/skills) (`SKILL.md` with `name`/`description`/`allowed-tools` frontmatter):
+
+```bash
+./install.sh --agent pi
+```
+
+```
+.pi/skills/
+  expedait-download/SKILL.md
+  expedait-author/SKILL.md
+  expedait-process/SKILL.md
+  expedait-comment/SKILL.md
+  expedait-review/SKILL.md
+```
+
+Invoke them explicitly with `/skill:expedait-download` (etc.), or let Pi auto-load the right skill when a request matches its description. `$ARGUMENTS` works natively.
+
 ### All agents at once
 
 ```bash
@@ -240,6 +259,7 @@ skills/                        # canonical source (SKILL.md format)
 
 platforms/                     # generated — do not edit directly
   codex/skills/*/SKILL.md     # same format as Claude Code
+  pi/skills/*/SKILL.md         # Pi Agent Skills standard
   opencode/commands/*.md       # OpenCode command format
   gemini/commands/*.toml       # Gemini CLI TOML format
   cursor/rules/*.mdc           # Cursor rule format
