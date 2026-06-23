@@ -19,6 +19,17 @@ The product's spec model is built on four primitives — **objectives**, **deliv
 (formerly "pages"), **context**, and **review** — mirrored by the hosted MCP server at
 `https://mcp.expedait.org`. Keep the skills' vocabulary aligned with these.
 
+As of `expedait-cli` 0.4.0 the CLI and the MCP server are at **parity** on writes. CLI groups
+`deliverables` (`create`/`edit`/`rename`/`save-version`/`set-state`/`write`), `processes`
+(`list`/`get`/`write`), and `roles` (`create`/`update`/`delete`/`write`) mirror the MCP tools
+`write_deliverable`, `write_process`, and `write_role`. So `expedait-author` and
+`expedait-process` are CLI-first with an MCP-alternative section, like the other skills. The
+authoritative MCP tool reference is `docs/mcp-server.md` in the `Expedait/expedait` repo, and
+the CLI's own `--help` is authoritative for the CLI surface — check both (and open PRs) before
+assuming the surface is stable. Note 0.4.0 dropped the old CLI codebase-review *runner*
+(`expedait review <project>`); `review` is now just `issues` + `mute`, and `projects context`
+became `projects download` / `projects workspace`.
+
 ## After modifying skills
 
 Skills in `skills/*/SKILL.md` are the single source of truth. Platform-specific files in `platforms/` are generated. After editing any SKILL.md:

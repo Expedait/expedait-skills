@@ -22,7 +22,7 @@ Expedait's spec model is organized around four primitives:
 1. Authenticate (first time only — credentials are cached in `~/.expedait/config.json`):
    ```bash
    uvx --from expedait-cli expedait auth login
-   uvx --from expedait-cli expedait status        # confirm user, tenant, workspace
+   uvx --from expedait-cli expedait auth status   # confirm user, tenant, workspace
    ```
 
 2. If no project ID/name was given via $ARGUMENTS, list available projects:
@@ -31,16 +31,18 @@ Expedait's spec model is organized around four primitives:
    ```
    `PROJECT` can be a numeric ID, a name (or substring), or omitted for interactive selection.
 
-3. Download the full context snapshot for coding agents:
+3. Download all of a project's deliverables (markdown + images) to disk:
    ```bash
-   uvx --from expedait-cli expedait projects context PROJECT
+   uvx --from expedait-cli expedait projects download PROJECT --output-dir .expedait/context
    ```
-   Writes to `.expedait/context/` by default (`--output-dir` to change). The snapshot
-   includes one markdown file per deliverable, grouped by phase, plus per-deliverable
-   JSON (comments, dependencies, history) from the full endpoint. Use
-   `--without-full-pages` for a lighter, content-only snapshot.
+   Extracts a ZIP of one markdown file per deliverable. For the structure-aware view —
+   deliverables grouped by phase — use the workspace command (mirrors the MCP
+   `get_project_workspace`):
+   ```bash
+   uvx --from expedait-cli expedait projects workspace PROJECT
+   ```
 
-4. Read the downloaded deliverables in `.expedait/context/` to understand the project before implementing.
+4. Read the downloaded deliverables to understand the project before implementing.
 
 ## Drilling into a single deliverable
 
@@ -67,6 +69,25 @@ uvx --from expedait-cli expedait context get DELIVERABLE_ID
 # An objective's full descendant tree (child deliverable ids, titles, states, scores)
 uvx --from expedait-cli expedait objectives overview DELIVERABLE_ID
 ```
+
+## Via the MCP server (no CLI)
+
+If you're connected to the hosted Expedait MCP server (`https://mcp.expedait.org`), the same
+reads map to these tools (all read-only, `mcp:deliverables:read`):
+
+```
+list_projects()                              get_project_workspace(project_id)   # phase grouping
+list_deliverables(project_id)                get_deliverable(id, include=[...])  # section-aware
+get_objective_overview(id)                   get_deliverable_context(id)         # assembled LLM context
+```
+
+`get_deliverable` defaults to cheap `meta`-only; opt into heavier sections (`content`,
+`template`, `requirements`, `writer_instructions`, `dependencies`, `external_context`,
+`score`, `comments`, `versions`) only when you need them. Responses are capped at 32 KB with
+truncation reported via `truncated` / `truncated_fields`.
+
+Once you understand a project, the MCP server can also **write**: use `/expedait-author` to
+create or edit deliverables, and `/expedait-process` to design the project-type template.
 
 ## Tips
 
