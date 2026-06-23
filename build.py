@@ -15,7 +15,13 @@ ROOT = Path(__file__).parent
 SKILLS_DIR = ROOT / "skills"
 PLATFORMS_DIR = ROOT / "platforms"
 
-SKILL_NAMES = ["expedait-comment", "expedait-download", "expedait-review"]
+SKILL_NAMES = [
+    "expedait-author",
+    "expedait-comment",
+    "expedait-download",
+    "expedait-process",
+    "expedait-review",
+]
 
 
 # ---------------------------------------------------------------------------

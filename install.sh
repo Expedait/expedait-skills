@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/skills"
 PLATFORMS_DIR="$SCRIPT_DIR/platforms"
 TARGET_DIR="${TARGET_DIR:-.}"
-VERSION="0.2.0"
+VERSION="0.3.0"
 VERSION_FILE=".expedait-skills-version"
 GITHUB_LATEST="https://api.github.com/repos/Expedait/expedait-skills/releases/latest"
 
@@ -79,7 +79,7 @@ write_version() {
 install_claude_code() {
   local dir="$TARGET_DIR/.claude/skills"
 
-  for skill in expedait-download expedait-comment expedait-review; do
+  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process; do
     if [[ ! -f "$SKILLS_DIR/$skill/SKILL.md" ]]; then
       error "Missing skill source: $SKILLS_DIR/$skill/SKILL.md"
       exit 1
@@ -92,6 +92,8 @@ install_claude_code() {
   info "  /expedait-download  — download project specs"
   info "  /expedait-comment   — post a comment on a spec page"
   info "  /expedait-review    — review code against specs"
+  info "  /expedait-author    — create/edit deliverables (MCP)"
+  info "  /expedait-process   — design a project-type template (MCP)"
 }
 
 # --- Cursor ---
@@ -116,6 +118,8 @@ install_cursor() {
   info "  expedait-download.mdc"
   info "  expedait-comment.mdc"
   info "  expedait-review.mdc"
+  info "  expedait-author.mdc"
+  info "  expedait-process.mdc"
 }
 
 # --- OpenCode ---
@@ -134,6 +138,8 @@ install_opencode() {
   info "  /expedait-download  — download project specs"
   info "  /expedait-comment   — post a comment on a spec page"
   info "  /expedait-review    — review code against specs"
+  info "  /expedait-author    — create/edit deliverables (MCP)"
+  info "  /expedait-process   — design a project-type template (MCP)"
 }
 
 # --- Codex ---
@@ -141,7 +147,7 @@ install_codex() {
   local dir="$TARGET_DIR/.codex/skills"
   local src="$PLATFORMS_DIR/codex/skills"
 
-  for skill in expedait-download expedait-comment expedait-review; do
+  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process; do
     mkdir -p "$dir/$skill"
     cp "$src/$skill/SKILL.md" "$dir/$skill/SKILL.md"
   done
@@ -150,6 +156,8 @@ install_codex() {
   info "  expedait-download  — download project specs"
   info "  expedait-comment   — post a comment on a spec page"
   info "  expedait-review    — review code against specs"
+  info "  expedait-author    — create/edit deliverables (MCP)"
+  info "  expedait-process   — design a project-type template (MCP)"
 }
 
 # --- Gemini CLI ---
@@ -168,6 +176,8 @@ install_gemini() {
   info "  /expedait-download  — download project specs"
   info "  /expedait-comment   — post a comment on a spec page"
   info "  /expedait-review    — review code against specs"
+  info "  /expedait-author    — create/edit deliverables (MCP)"
+  info "  /expedait-process   — design a project-type template (MCP)"
 }
 
 # --- Auto-detect ---

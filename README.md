@@ -35,7 +35,7 @@ The CLI's package is `expedait-cli` and its entrypoint is `expedait`, so run it 
 uvx --from expedait-cli expedait auth login
 
 # Check auth status, tenant, and workspace
-uvx --from expedait-cli expedait status
+uvx --from expedait-cli expedait auth status
 
 # Or set environment variables (for CI / agent environments)
 export EXPEDAIT_TOKEN="your-jwt-token"
@@ -45,7 +45,7 @@ export EXPEDAIT_TENANT_ID=1
 
 Credentials are cached in `~/.expedait/config.json`. Settings are resolved in order: CLI flag → environment variable → `~/.expedait/config.json`. Pass the project per command (by ID, name, or interactively) — there is no separate init step.
 
-> **Prefer the hosted MCP server?** Add `https://mcp.expedait.org` to your AI client's connectors, sign in once, and pick a workspace — it exposes the same primitives (projects, deliverables, objectives, context, review, comments) without the CLI. See [Expedait's MCP docs](https://expedait.com).
+> **Prefer the hosted MCP server?** Add `https://mcp.expedait.org` to your AI client's connectors, sign in once, and pick a workspace — it exposes the same primitives (projects, deliverables, objectives, context, review, comments) and the same write surface as the CLI: author and edit deliverables (`write_deliverable`), design project-type processes (`write_process`), and manage owner roles (`write_role`). See [Expedait's MCP docs](https://expedait.com).
 
 ### 3. Use a skill
 
@@ -62,9 +62,16 @@ Or just ask naturally: *"Download the specs for project 1 and review my code aga
 
 | Skill | Description |
 |-------|-------------|
-| [Download Project Context](skills/download-project-context.md) | Download a project's objectives, deliverables, and context |
-| [Post a Comment](skills/post-comment.md) | Post an inline comment on a deliverable |
-| [Review](skills/review-and-comment.md) | Check objective/PRD/vision alignment against code, and read review findings — scopes to branch changes or full audit |
+| [Download Project Context](skills/expedait-download/SKILL.md) | Download a project's objectives, deliverables, and context |
+| [Author Deliverables](skills/expedait-author/SKILL.md) | Create and edit deliverables — draft content, snapshot versions, change state |
+| [Process Designer](skills/expedait-process/SKILL.md) | Create or adapt a project-type process — phases, deliverable types, dependencies, owner roles |
+| [Post a Comment](skills/expedait-comment/SKILL.md) | Post an inline comment on a deliverable |
+| [Review](skills/expedait-review/SKILL.md) | Check objective/PRD/vision alignment against code, and read review findings — scopes to branch changes or full audit |
+
+> Every skill works with **either the CLI or the hosted MCP server**. The write surface —
+> authoring deliverables (`write_deliverable`), designing processes (`write_process`), and
+> managing roles (`write_role`) — landed in `expedait-cli` 0.4.0, so the **Author** and
+> **Process Designer** skills are CLI-first with an MCP-alternative section.
 
 ## Agent Setup
 
@@ -77,7 +84,7 @@ Install as a Claude Code plugin — no manual file setup needed:
 /plugin install expedait-skills@expedait
 ```
 
-This registers the marketplace and installs the skills as `/expedait-download`, `/expedait-comment`, and `/expedait-review`.
+This registers the marketplace and installs the skills as `/expedait-download`, `/expedait-author`, `/expedait-process`, `/expedait-comment`, and `/expedait-review`.
 
 Teams can also auto-enable the plugin by adding to `.claude/settings.json`:
 
@@ -104,11 +111,13 @@ The installer creates skills as custom slash commands in `.claude/skills/`:
 ```
 .claude/skills/
   expedait-download/SKILL.md
+  expedait-author/SKILL.md
+  expedait-process/SKILL.md
   expedait-comment/SKILL.md
   expedait-review/SKILL.md
 ```
 
-These become available as `/expedait-download`, `/expedait-comment`, and `/expedait-review`.
+These become available as `/expedait-download`, `/expedait-author`, `/expedait-process`, `/expedait-comment`, and `/expedait-review`.
 
 **Manual setup:**
 
@@ -156,11 +165,13 @@ The installer creates commands in `.opencode/commands/` using the native command
 ```
 .opencode/commands/
   expedait-download.md
+  expedait-author.md
+  expedait-process.md
   expedait-comment.md
   expedait-review.md
 ```
 
-These become available as `/expedait-download`, `/expedait-comment`, and `/expedait-review`.
+These become available as `/expedait-download`, `/expedait-author`, `/expedait-process`, `/expedait-comment`, and `/expedait-review`.
 
 ### Codex (OpenAI)
 
@@ -173,6 +184,8 @@ The installer creates skills in `.codex/skills/` using the native SKILL.md forma
 ```
 .codex/skills/
   expedait-download/SKILL.md
+  expedait-author/SKILL.md
+  expedait-process/SKILL.md
   expedait-comment/SKILL.md
   expedait-review/SKILL.md
 ```
@@ -188,11 +201,13 @@ The installer creates custom commands in `.gemini/commands/` using the native TO
 ```
 .gemini/commands/
   expedait-download.toml
+  expedait-author.toml
+  expedait-process.toml
   expedait-comment.toml
   expedait-review.toml
 ```
 
-These become available as `/expedait-download`, `/expedait-comment`, and `/expedait-review`.
+These become available as `/expedait-download`, `/expedait-author`, `/expedait-process`, `/expedait-comment`, and `/expedait-review`.
 
 ### All agents at once
 
@@ -218,6 +233,8 @@ Skills are defined once in `skills/*/SKILL.md` (the single source of truth) and 
 ```
 skills/                        # canonical source (SKILL.md format)
   expedait-download/SKILL.md
+  expedait-author/SKILL.md
+  expedait-process/SKILL.md
   expedait-comment/SKILL.md
   expedait-review/SKILL.md
 

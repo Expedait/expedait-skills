@@ -5,23 +5,15 @@ prompt = """
 
 Run the CLI via `uvx --from expedait-cli expedait` — it runs in an isolated environment via uv, so no global install or virtual environment is needed.
 
-"Review" is a first-class Expedait primitive. There are two complementary surfaces:
+"Review" findings are scoring issues raised on a deliverable. The CLI gives you two surfaces
+over them — read and triage:
 
-- **Run a review** — `expedait review` analyzes a codebase against a project's deliverables and posts `DIVERGENCE` / `MISSING` comments back on the relevant deliverables.
-- **Read review issues** — `expedait review issues DELIVERABLE_ID` lists the scoring findings already raised on a deliverable (severity, description, the criteria that flagged it, anchor offsets).
+- **Read findings** — `expedait review issues DELIVERABLE_ID` lists the scoring findings on a
+  deliverable (severity, description, the criteria that flagged it, anchor offsets).
+- **Triage findings** — `expedait review mute ISSUE_ID` mutes one that isn't actionable.
 
-## Fast path: let the CLI run the review
-
-The CLI ships an agent that does the spec-vs-code comparison and posts findings for you:
-
-```bash
-uvx --from expedait-cli expedait review PROJECT --target-dir .
-```
-
-`PROJECT` can be a numeric ID, a name (or substring), or omitted for interactive
-selection. Useful flags: `--timeout MINUTES` (default 60), `--model claude|gemini|openai`,
-`--debug`. This posts `DIVERGENCE` and `MISSING` comments directly on the deliverables —
-use it when the user wants findings written back to Expedait.
+The CLI has no automated codebase-review runner — **you** do the spec-vs-code comparison
+yourself (the manual path below) and post divergences with `/expedait-comment`.
 
 ## Reading existing review findings
 
@@ -32,6 +24,21 @@ uvx --from expedait-cli expedait review issues DELIVERABLE_ID --state open
 # Mute a finding that isn't actionable (or --unmute to restore)
 uvx --from expedait-cli expedait review mute ISSUE_ID --note "tracked in JIRA-123"
 ```
+
+## Via the MCP server (reading & triaging findings)
+
+If you're connected to the hosted Expedait MCP server (`https://mcp.expedait.org`) instead
+of the CLI, you can read and triage review findings directly:
+
+```
+list_review_issues(deliverable_id, state?)   # state: open | muted | all (default all)
+mute_review_issue(issue_id, muted?, muted_note?)   # muted=false to unmute; needs mcp:deliverables:write
+```
+
+Each issue carries severity, description, the criteria that flagged it, anchor offsets, and
+an optional reference. Mute findings that aren't actionable with a `muted_note` explaining
+why (e.g. tracked elsewhere). If these tools aren't in your tool list, the connector isn't
+attached — use the CLI path above instead.
 
 ## Manual path: scoped local report (no comments posted)
 
@@ -61,10 +68,10 @@ Only review these changed files against the deliverables.
 Always pull fresh — stale local copies lead to false positives.
 
 ```bash
-uvx --from expedait-cli expedait projects context PROJECT
+uvx --from expedait-cli expedait projects download PROJECT --output-dir .expedait/context
 ```
 
-Writes to `.expedait/context/`.
+Extracts the deliverables to `.expedait/context/`.
 
 ### Step 3: Identify high-signal deliverables
 
@@ -119,9 +126,8 @@ Objective- and vision-level conflicts are higher priority than PRD-level ones �
 
 ## Posting findings back
 
-The manual report stays local until the developer decides what's worth flagging. To post:
-- Use `/expedait-comment` for individual findings, or
-- Re-run the automated `expedait review` to let the CLI post `DIVERGENCE`/`MISSING` comments.
+The manual report stays local until the developer decides what's worth flagging. To post a
+finding, use `/expedait-comment` to anchor it to the exact deliverable text it diverges from.
 
 ## Tips
 

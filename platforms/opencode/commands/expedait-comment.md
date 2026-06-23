@@ -49,6 +49,26 @@ uvx --from expedait-cli expedait comments resolve DELIVERABLE_ID COMMENT_ID
 uvx --from expedait-cli expedait comments delete DELIVERABLE_ID COMMENT_ID
 ```
 
+## Via the MCP server (no CLI)
+
+If you're connected to the hosted Expedait MCP server (`https://mcp.expedait.org`) instead
+of the CLI, the same workflow maps to these tools (requires the `mcp:comments:write` scope):
+
+```
+get_deliverable(id, include=["content"])          # quote exact span to anchor to
+list_comments(deliverable_id)                      # see existing comments, avoid dupes
+create_comment(deliverable_id, text, selected_text, start_offset, end_offset,
+               parent_comment_id?, client_request_id?)
+resolve_comment(deliverable_id, comment_id)        # idempotent
+```
+
+Unlike the CLI, `create_comment` takes explicit `start_offset` / `end_offset`: they are
+0-based character offsets into the `content` string returned by
+`get_deliverable(id, include=["content"])`. Find `selected_text` in that string —
+`start_offset` is its index, `end_offset` is `start_offset + len(selected_text)`. Pass
+`client_request_id` to make the create idempotent if you retry. If these tools aren't in your
+tool list, the connector isn't attached — use the CLI path above instead.
+
 ## Tips
 
 - Comments created via the CLI are auto-marked as agent comments (`is_agent_comment: true`).
