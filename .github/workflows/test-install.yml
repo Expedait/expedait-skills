@@ -57,6 +57,7 @@ jobs:
         run: |
           for skill in expedait-download expedait-comment expedait-review; do
             test -f "platforms/codex/skills/$skill/SKILL.md"
+            test -f "platforms/pi/skills/$skill/SKILL.md"
             test -f "platforms/opencode/commands/$skill.md"
             test -f "platforms/gemini/commands/$skill.toml"
             test -f "platforms/cursor/rules/$skill.mdc"
@@ -81,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        agent: [claude-code, cursor, opencode, codex, gemini]
+        agent: [claude-code, cursor, opencode, codex, gemini, pi]
     steps:
       - uses: actions/checkout@v4
 
@@ -123,6 +124,12 @@ jobs:
                 test -s "/tmp/test-project/.gemini/commands/$cmd.toml"
               done
               ;;
+            pi)
+              for skill in expedait-download expedait-comment expedait-review; do
+                test -f "/tmp/test-project/.pi/skills/$skill/SKILL.md"
+                test -s "/tmp/test-project/.pi/skills/$skill/SKILL.md"
+              done
+              ;;
           esac
 
       - name: Verify version file matches script
@@ -149,6 +156,7 @@ jobs:
             test -s /tmp/test-project/.opencode/commands/$skill.md
             test -s /tmp/test-project/.codex/skills/$skill/SKILL.md
             test -s /tmp/test-project/.gemini/commands/$skill.toml
+            test -s /tmp/test-project/.pi/skills/$skill/SKILL.md
           done
           test -f /tmp/test-project/.expedait-skills-version
 

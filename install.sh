@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/skills"
 PLATFORMS_DIR="$SCRIPT_DIR/platforms"
 TARGET_DIR="${TARGET_DIR:-.}"
-VERSION="0.3.0"
+VERSION="0.4.0"
 VERSION_FILE=".expedait-skills-version"
 GITHUB_LATEST="https://api.github.com/repos/Expedait/expedait-skills/releases/latest"
 
@@ -31,7 +31,7 @@ Install Expedait skills for your AI coding agent.
 
 Options:
   --agent <name>    Install for a specific agent:
-                      claude-code, cursor, opencode, codex, gemini
+                      claude-code, cursor, opencode, codex, gemini, pi
   --all             Install for all detected agents
   --target <dir>    Target project directory (default: current directory)
   --check           Check if installed skills are up to date
@@ -94,6 +94,25 @@ install_claude_code() {
   info "  /expedait-review    — review code against specs"
   info "  /expedait-author    — create/edit deliverables (MCP)"
   info "  /expedait-process   — design a project-type template (MCP)"
+}
+
+# --- Pi (pi.dev) ---
+install_pi() {
+  local dir="$TARGET_DIR/.pi/skills"
+  local src="$PLATFORMS_DIR/pi/skills"
+
+  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process; do
+    mkdir -p "$dir/$skill"
+    cp "$src/$skill/SKILL.md" "$dir/$skill/SKILL.md"
+  done
+
+  info "Pi: installed skills in $dir/"
+  info "  expedait-download  — download project specs"
+  info "  expedait-comment   — post a comment on a spec page"
+  info "  expedait-review    — review code against specs"
+  info "  expedait-author    — create/edit deliverables (MCP)"
+  info "  expedait-process   — design a project-type template (MCP)"
+  info "  Invoke with /skill:expedait-download (or let Pi auto-load by description)"
 }
 
 # --- Cursor ---
@@ -203,6 +222,10 @@ detect_agents() {
   if [[ -d "$HOME/.gemini" ]] || command -v gemini &>/dev/null; then
     agents+=("gemini")
   fi
+  # Pi (pi.dev): check for .pi dir or pi command
+  if [[ -d "$TARGET_DIR/.pi" ]] || [[ -d "$HOME/.pi" ]] || command -v pi &>/dev/null; then
+    agents+=("pi")
+  fi
   # Default to claude-code if nothing detected
   if [[ ${#agents[@]} -eq 0 ]]; then
     agents+=("claude-code")
@@ -217,6 +240,7 @@ install_agent() {
     opencode)    install_opencode ;;
     codex)       install_codex ;;
     gemini)      install_gemini ;;
+    pi)          install_pi ;;
     *) error "Unknown agent: $1"; exit 1 ;;
   esac
 }
@@ -252,6 +276,7 @@ main() {
     install_opencode
     install_codex
     install_gemini
+    install_pi
   else
     local detected
     detected=$(detect_agents)
