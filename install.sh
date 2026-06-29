@@ -31,7 +31,8 @@ Install Expedait skills for your AI coding agent.
 
 Options:
   --agent <name>    Install for a specific agent:
-                      claude-code, cursor, opencode, codex, gemini, pi
+                      claude-code, cursor, opencode, codex, gemini, pi,
+                      windsurf, copilot, cline, zed, junie, amp
   --all             Install for all detected agents
   --target <dir>    Target project directory (default: current directory)
   --check           Check if installed skills are up to date
@@ -199,6 +200,90 @@ install_gemini() {
   info "  /expedait-process   — design a project-type template (MCP)"
 }
 
+# --- Windsurf ---
+install_windsurf() {
+  local dir="$TARGET_DIR/.windsurf/rules"
+  local src="$PLATFORMS_DIR/windsurf/rules"
+  mkdir -p "$dir"
+
+  for md in "$src"/*.md; do
+    cp "$md" "$dir/$(basename "$md")"
+  done
+
+  info "Windsurf: installed rules in $dir/"
+  info "  Each rule uses 'trigger: manual' — reference one with @expedait-download (etc.)"
+}
+
+# --- GitHub Copilot ---
+install_copilot() {
+  local dir="$TARGET_DIR/.github/prompts"
+  local src="$PLATFORMS_DIR/copilot/prompts"
+  mkdir -p "$dir"
+
+  for md in "$src"/*.prompt.md; do
+    cp "$md" "$dir/$(basename "$md")"
+  done
+
+  info "GitHub Copilot: installed prompt files in $dir/"
+  info "  Run them in chat as /expedait-download, /expedait-comment, etc."
+}
+
+# --- Cline ---
+install_cline() {
+  local dir="$TARGET_DIR/.clinerules/workflows"
+  local src="$PLATFORMS_DIR/cline/workflows"
+  mkdir -p "$dir"
+
+  for md in "$src"/*.md; do
+    cp "$md" "$dir/$(basename "$md")"
+  done
+
+  info "Cline: installed workflows in $dir/"
+  info "  Invoke a workflow by typing /expedait-download.md (etc.) in chat"
+}
+
+# --- Zed ---
+install_zed() {
+  local dir="$TARGET_DIR/.agents/skills"
+  local src="$PLATFORMS_DIR/zed/skills"
+
+  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process; do
+    mkdir -p "$dir/$skill"
+    cp "$src/$skill/SKILL.md" "$dir/$skill/SKILL.md"
+  done
+
+  info "Zed: installed Agent Skills in $dir/"
+  info "  Invoke with /expedait-download or @expedait-download, or let Zed auto-load by description"
+}
+
+# --- JetBrains Junie ---
+install_junie() {
+  local dir="$TARGET_DIR/.junie/commands"
+  local src="$PLATFORMS_DIR/junie/commands"
+  mkdir -p "$dir"
+
+  for md in "$src"/*.md; do
+    cp "$md" "$dir/$(basename "$md")"
+  done
+
+  info "JetBrains Junie: installed slash commands in $dir/"
+  info "  Invoke them as /expedait-download, /expedait-review, etc."
+}
+
+# --- Amp (Sourcegraph) ---
+install_amp() {
+  local dir="$TARGET_DIR/.agents/commands"
+  local src="$PLATFORMS_DIR/amp/commands"
+  mkdir -p "$dir"
+
+  for md in "$src"/*.md; do
+    cp "$md" "$dir/$(basename "$md")"
+  done
+
+  info "Amp: installed slash commands in $dir/"
+  info "  Invoke them as /expedait-download, /expedait-review, etc."
+}
+
 # --- Auto-detect ---
 detect_agents() {
   local agents=()
@@ -226,6 +311,30 @@ detect_agents() {
   if [[ -d "$TARGET_DIR/.pi" ]] || [[ -d "$HOME/.pi" ]] || command -v pi &>/dev/null; then
     agents+=("pi")
   fi
+  # Windsurf: check for .windsurf dir
+  if [[ -d "$TARGET_DIR/.windsurf" ]]; then
+    agents+=("windsurf")
+  fi
+  # GitHub Copilot: check for existing prompt/instructions dirs
+  if [[ -d "$TARGET_DIR/.github/prompts" ]] || [[ -f "$TARGET_DIR/.github/copilot-instructions.md" ]]; then
+    agents+=("copilot")
+  fi
+  # Cline: check for .clinerules dir
+  if [[ -d "$TARGET_DIR/.clinerules" ]]; then
+    agents+=("cline")
+  fi
+  # Zed: check for .zed dir or zed command
+  if [[ -d "$TARGET_DIR/.zed" ]] || command -v zed &>/dev/null; then
+    agents+=("zed")
+  fi
+  # JetBrains Junie: check for .junie dir
+  if [[ -d "$TARGET_DIR/.junie" ]]; then
+    agents+=("junie")
+  fi
+  # Amp (Sourcegraph): check for .amp dir or amp command
+  if [[ -d "$TARGET_DIR/.amp" ]] || command -v amp &>/dev/null; then
+    agents+=("amp")
+  fi
   # Default to claude-code if nothing detected
   if [[ ${#agents[@]} -eq 0 ]]; then
     agents+=("claude-code")
@@ -241,6 +350,12 @@ install_agent() {
     codex)       install_codex ;;
     gemini)      install_gemini ;;
     pi)          install_pi ;;
+    windsurf)    install_windsurf ;;
+    copilot)     install_copilot ;;
+    cline)       install_cline ;;
+    zed)         install_zed ;;
+    junie)       install_junie ;;
+    amp)         install_amp ;;
     *) error "Unknown agent: $1"; exit 1 ;;
   esac
 }
@@ -277,6 +392,12 @@ main() {
     install_codex
     install_gemini
     install_pi
+    install_windsurf
+    install_copilot
+    install_cline
+    install_zed
+    install_junie
+    install_amp
   else
     local detected
     detected=$(detect_agents)

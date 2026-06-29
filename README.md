@@ -17,7 +17,7 @@ Expedait's spec model has four primitives: **objectives** (top-level goals that 
 /plugin install expedait-skills@expedait
 ```
 
-**Script installer** (Claude Code, Cursor, OpenCode, Codex, Gemini CLI, Pi):
+**Script installer** (Claude Code, Cursor, OpenCode, Codex, Gemini CLI, Pi, Windsurf, GitHub Copilot, Cline, Zed, JetBrains Junie, Amp):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Expedait/expedait-skills/main/install.sh | bash
@@ -228,6 +228,120 @@ The installer creates skills in `.pi/skills/` using Pi's native [Agent Skills st
 
 Invoke them explicitly with `/skill:expedait-download` (etc.), or let Pi auto-load the right skill when a request matches its description. `$ARGUMENTS` works natively.
 
+### Windsurf
+
+The installer creates one rule file per skill in `.windsurf/rules/`, each with `trigger: manual` so it loads on demand rather than on every turn:
+
+```bash
+./install.sh --agent windsurf
+```
+
+```
+.windsurf/rules/
+  expedait-download.md
+  expedait-author.md
+  expedait-process.md
+  expedait-comment.md
+  expedait-review.md
+```
+
+Reference a rule in Cascade with `@expedait-download` (etc.). Windsurf rules don't substitute arguments, so `$ARGUMENTS` is rewritten to a prose reference.
+
+### GitHub Copilot
+
+The installer creates [prompt files](https://docs.github.com/en/copilot/tutorials/customization-library/prompt-files) in `.github/prompts/` (`mode: agent`):
+
+```bash
+./install.sh --agent copilot
+```
+
+```
+.github/prompts/
+  expedait-download.prompt.md
+  expedait-author.prompt.md
+  expedait-process.prompt.md
+  expedait-comment.prompt.md
+  expedait-review.prompt.md
+```
+
+Run them in Copilot Chat as `/expedait-download`, `/expedait-author`, `/expedait-process`, `/expedait-comment`, and `/expedait-review`.
+
+### Cline
+
+The installer creates [workflows](https://docs.cline.bot/features/slash-commands/workflows) in `.clinerules/workflows/`:
+
+```bash
+./install.sh --agent cline
+```
+
+```
+.clinerules/workflows/
+  expedait-download.md
+  expedait-author.md
+  expedait-process.md
+  expedait-comment.md
+  expedait-review.md
+```
+
+Invoke a workflow by typing `/expedait-download.md` (etc.) in chat.
+
+### Zed
+
+The installer creates [Agent Skills](https://zed.dev/docs/ai/skills) in `.agents/skills/` (the same `SKILL.md` standard as Claude Code, with `name`/`description` frontmatter):
+
+```bash
+./install.sh --agent zed
+```
+
+```
+.agents/skills/
+  expedait-download/SKILL.md
+  expedait-author/SKILL.md
+  expedait-process/SKILL.md
+  expedait-comment/SKILL.md
+  expedait-review/SKILL.md
+```
+
+Invoke a skill with `/expedait-download` or `@expedait-download`, or let Zed's agent auto-load the right one by description. `$ARGUMENTS` works natively.
+
+### JetBrains Junie
+
+The installer creates [custom slash commands](https://junie.jetbrains.com/docs/custom-slash-commands.html) in `.junie/commands/` (works across all JetBrains IDEs — IntelliJ IDEA, PyCharm, WebStorm, GoLand, etc.):
+
+```bash
+./install.sh --agent junie
+```
+
+```
+.junie/commands/
+  expedait-download.md
+  expedait-author.md
+  expedait-process.md
+  expedait-comment.md
+  expedait-review.md
+```
+
+These become available as `/expedait-download`, `/expedait-author`, `/expedait-process`, `/expedait-comment`, and `/expedait-review`.
+
+### Amp (Sourcegraph)
+
+The installer creates [custom slash commands](https://ampcode.com/news/custom-slash-commands) in `.agents/commands/`:
+
+```bash
+./install.sh --agent amp
+```
+
+```
+.agents/commands/
+  expedait-download.md
+  expedait-author.md
+  expedait-process.md
+  expedait-comment.md
+  expedait-review.md
+```
+
+These become available as `/expedait-download`, `/expedait-author`, `/expedait-process`, `/expedait-comment`, and `/expedait-review`.
+
 ### All agents at once
 
 ```bash
@@ -258,11 +372,17 @@ skills/                        # canonical source (SKILL.md format)
   expedait-review/SKILL.md
 
 platforms/                     # generated — do not edit directly
-  codex/skills/*/SKILL.md     # same format as Claude Code
+  codex/skills/*/SKILL.md      # same format as Claude Code
   pi/skills/*/SKILL.md         # Pi Agent Skills standard
   opencode/commands/*.md       # OpenCode command format
   gemini/commands/*.toml       # Gemini CLI TOML format
   cursor/rules/*.mdc           # Cursor rule format
+  windsurf/rules/*.md          # Windsurf manual-trigger rules
+  copilot/prompts/*.prompt.md  # GitHub Copilot prompt files
+  cline/workflows/*.md         # Cline workflows
+  zed/skills/*/SKILL.md        # Zed Agent Skills standard
+  junie/commands/*.md          # JetBrains Junie slash commands
+  amp/commands/*.md            # Amp slash commands
 ```
 
 Claude Code uses `skills/` directly (native format). Other platforms use files from `platforms/`.

@@ -1,0 +1,101 @@
+---
+description: "Author and edit Expedait deliverables — create a new spec document, draft or fill in its content, rename it, snapshot a version, or change its state. Use this skill whenever the user wants to write a deliverable, draft a PRD/vision/persona/architecture doc, fill in a spec from the template, update a deliverable's content, add a child deliverable under an objective, save a version, or move a deliverable to Review/Approved/Completed. Also trigger for 'write the PRD', 'draft the product vision', 'create a deliverable', 'edit the spec', 'snapshot this version', or 'mark the deliverable approved'."
+---
+
+# Author & Edit Expedait Deliverables
+
+Run the CLI via `uvx --from expedait-cli expedait` — it runs in an isolated environment via
+uv, so no global install is needed. A **deliverable** is an Expedait spec document. As of CLI
+0.4.0 the CLI can create and edit deliverable content, not just read it.
+
+Authenticate once (`uvx --from expedait-cli expedait auth login`); `expedait init` writes
+`.expedait/settings.json` so `--project` defaults for you.
+
+## Always read before you write
+
+A good deliverable follows its type's template and satisfies its requirements. Pull that
+context first so what you write actually fits:
+
+```bash
+# Template structure, the bar it's scored against, and how to write it
+uvx --from expedait-cli expedait deliverables get DELIVERABLE_ID \
+  --include meta,template,requirements,writer_instructions
+
+# The assembled LLM context — upstream deliverables this one depends on
+uvx --from expedait-cli expedait context get DELIVERABLE_ID
+
+# Current content, if you're editing an existing deliverable
+uvx --from expedait-cli expedait deliverables get DELIVERABLE_ID --include content
+```
+
+Read the upstream dependencies before drafting so you stay consistent with them.
+
+## Finding the ids you need
+
+`create` needs a project id and a deliverable **type** id — look them up, don't guess:
+
+```bash
+uvx --from expedait-cli expedait projects list                  # project id
+uvx --from expedait-cli expedait deliverables types             # the --type id for create
+uvx --from expedait-cli expedait deliverables list --project-id PROJECT_ID
+# Nesting under an objective? its descendant tree gives the parent id:
+uvx --from expedait-cli expedait objectives overview OBJECTIVE_DELIVERABLE_ID
+```
+
+## Write — the common case (ergonomic subcommands)
+
+```bash
+# Create (content accepts @file, - for stdin, or a literal string)
+uvx --from expedait-cli expedait deliverables create \
+  --project PROJECT_ID --type TYPE_ID --title "Auth PRD" --content @draft.md \
+  [--parent-deliverable-id OBJECTIVE_INSTANCE_ID]
+
+uvx --from expedait-cli expedait deliverables edit DELIVERABLE_ID --content @draft.md   # autosave, no version bump
+uvx --from expedait-cli expedait deliverables rename DELIVERABLE_ID --title "New title"
+uvx --from expedait-cli expedait deliverables save-version DELIVERABLE_ID --reason "first complete draft"
+uvx --from expedait-cli expedait deliverables set-state DELIVERABLE_ID --state "Review" --reason "ready for review"
+```
+
+Valid states for `set-state`: `Not Started`, `In Progress`, `Review`, `Approved`,
+`Completed`, `Final`.
+
+## Write — atomic multi-step (`deliverables write --ops`)
+
+To create-then-fill-then-snapshot in one atomic call, pass an ordered ops array (mirrors the
+MCP `write_deliverable` tool). Chain on a fresh deliverable with `id: "$last"`, or bind
+`ref` on a create and reference `id: "@name"` later:
+
+```bash
+uvx --from expedait-cli expedait deliverables write --ops - <<'JSON'
+[
+  {"op": "create", "project_id": 7, "deliverable_type_id": 12, "title": "Auth PRD"},
+  {"op": "edit", "id": "$last", "content": "## Goals\n\n## Requirements\n"},
+  {"op": "save_version", "id": "$last", "reason": "first complete draft"},
+  {"op": "set_state", "id": "$last", "state": "Review"}
+]
+JSON
+```
+
+`--ops` accepts `@file.json`, `-` (stdin), or an inline string. Ops execute in order; if one
+fails the rest are skipped and the result reports per-op `{status: ok | error | skipped}`.
+
+## Tips
+
+- **`edit` vs `save-version`.** `edit` autosaves without bumping the version; `save-version`
+  makes a named, restorable snapshot. Draft with `edit`, snapshot at milestones.
+- **Locks & state legality.** The backend re-checks lock status and whether a state
+  transition is legal; a rejected op surfaces as an error — re-read with `deliverables get`
+  and retry. Don't fight another editor's lock; surface it to the user.
+- **Verify** after writing: `deliverables get DELIVERABLE_ID --include content,score` —
+  `score` shows how the new content measures against the type's requirements once scoring runs.
+- Output format auto-detects (text in a terminal, JSON when piped); `--format json` to force it.
+- Reviewing instead of writing? Use `/expedait-review`. Commenting? Use `/expedait-comment`.
+
+## Via the MCP server (alternative to the CLI)
+
+If you're connected to the hosted Expedait MCP server (`https://mcp.expedait.org`) instead of
+the CLI, the same workflow maps to one tool, `write_deliverable(ops=[...])`, with the identical
+op set (`create` / `edit` / `rename` / `save_version` / `set_state`) and `$last` / `@ref`
+chaining. Reads map to `get_deliverable(id, include=[...])`, `get_deliverable_context(id)`, and
+`get_objective_overview(id)`. Requires the `mcp:deliverables:write` scope — if those tools
+aren't in your tool list, the connector isn't attached; use the CLI above instead.

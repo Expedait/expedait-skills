@@ -61,6 +61,12 @@ jobs:
             test -f "platforms/opencode/commands/$skill.md"
             test -f "platforms/gemini/commands/$skill.toml"
             test -f "platforms/cursor/rules/$skill.mdc"
+            test -f "platforms/windsurf/rules/$skill.md"
+            test -f "platforms/copilot/prompts/$skill.prompt.md"
+            test -f "platforms/cline/workflows/$skill.md"
+            test -f "platforms/zed/skills/$skill/SKILL.md"
+            test -f "platforms/junie/commands/$skill.md"
+            test -f "platforms/amp/commands/$skill.md"
           done
 
   test-cli-flags:
@@ -82,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        agent: [claude-code, cursor, opencode, codex, gemini, pi]
+        agent: [claude-code, cursor, opencode, codex, gemini, pi, windsurf, copilot, cline, zed, junie, amp]
     steps:
       - uses: actions/checkout@v4
 
@@ -130,6 +136,36 @@ jobs:
                 test -s "/tmp/test-project/.pi/skills/$skill/SKILL.md"
               done
               ;;
+            windsurf)
+              for rule in expedait-download expedait-comment expedait-review; do
+                test -s "/tmp/test-project/.windsurf/rules/$rule.md"
+              done
+              ;;
+            copilot)
+              for p in expedait-download expedait-comment expedait-review; do
+                test -s "/tmp/test-project/.github/prompts/$p.prompt.md"
+              done
+              ;;
+            cline)
+              for cmd in expedait-download expedait-comment expedait-review; do
+                test -s "/tmp/test-project/.clinerules/workflows/$cmd.md"
+              done
+              ;;
+            zed)
+              for skill in expedait-download expedait-comment expedait-review; do
+                test -s "/tmp/test-project/.agents/skills/$skill/SKILL.md"
+              done
+              ;;
+            junie)
+              for cmd in expedait-download expedait-comment expedait-review; do
+                test -s "/tmp/test-project/.junie/commands/$cmd.md"
+              done
+              ;;
+            amp)
+              for cmd in expedait-download expedait-comment expedait-review; do
+                test -s "/tmp/test-project/.agents/commands/$cmd.md"
+              done
+              ;;
           esac
 
       - name: Verify version file matches script
@@ -157,6 +193,12 @@ jobs:
             test -s /tmp/test-project/.codex/skills/$skill/SKILL.md
             test -s /tmp/test-project/.gemini/commands/$skill.toml
             test -s /tmp/test-project/.pi/skills/$skill/SKILL.md
+            test -s /tmp/test-project/.windsurf/rules/$skill.md
+            test -s /tmp/test-project/.github/prompts/$skill.prompt.md
+            test -s /tmp/test-project/.clinerules/workflows/$skill.md
+            test -s /tmp/test-project/.agents/skills/$skill/SKILL.md
+            test -s /tmp/test-project/.junie/commands/$skill.md
+            test -s /tmp/test-project/.agents/commands/$skill.md
           done
           test -f /tmp/test-project/.expedait-skills-version
 
