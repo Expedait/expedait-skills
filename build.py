@@ -167,6 +167,115 @@ def build_cursor(skill: dict, out_dir: Path):
     dest.write_text("\n".join(lines))
 
 
+def build_windsurf(skill: dict, out_dir: Path):
+    """Windsurf reads .windsurf/rules/<name>.md. A `trigger: manual` rule is loaded
+    on demand (referenced via @name), matching the on-demand skill model. No argument
+    substitution, so rewrite $ARGUMENTS. Per-file cap is 12,000 chars."""
+    name = skill["name"]
+    dest = out_dir / "windsurf" / "rules" / f"{name}.md"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    body = skill["body"].replace("$ARGUMENTS", "the user's input")
+
+    lines = [
+        "---",
+        f'description: "{skill["description"]}"',
+        "trigger: manual",
+        "---",
+        "",
+        body,
+    ]
+
+    dest.write_text("\n".join(lines))
+
+
+def build_copilot(skill: dict, out_dir: Path):
+    """GitHub Copilot prompt files: .github/prompts/<name>.prompt.md, invoked as /name.
+    No documented catch-all argument token, so rewrite $ARGUMENTS."""
+    name = skill["name"]
+    dest = out_dir / "copilot" / "prompts" / f"{name}.prompt.md"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    body = skill["body"].replace("$ARGUMENTS", "the user's input")
+
+    lines = [
+        "---",
+        f'description: "{skill["description"]}"',
+        "mode: agent",
+        "---",
+        "",
+        body,
+    ]
+
+    dest.write_text("\n".join(lines))
+
+
+def build_cline(skill: dict, out_dir: Path):
+    """Cline workflows: .clinerules/workflows/<name>.md, invoked as /<name>.md. Plain
+    markdown with no frontmatter; no argument substitution, so rewrite $ARGUMENTS."""
+    name = skill["name"]
+    dest = out_dir / "cline" / "workflows" / f"{name}.md"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    body = skill["body"].replace("$ARGUMENTS", "the user's input")
+
+    dest.write_text(body)
+
+
+def build_zed(skill: dict, out_dir: Path):
+    """Zed Agent Skills: .agents/skills/<name>/SKILL.md. Zed recognizes only name and
+    description in frontmatter (allowed-tools/argument-hint are not Zed fields). Skills
+    are invoked via / or @skill, and $ARGUMENTS works natively."""
+    name = skill["name"]
+    dest = out_dir / "zed" / "skills" / name / "SKILL.md"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    lines = [
+        "---",
+        f'name: {name}',
+        f'description: "{skill["description"]}"',
+        "---",
+        "",
+        skill["body"],
+    ]
+
+    dest.write_text("\n".join(lines))
+
+
+def build_junie(skill: dict, out_dir: Path):
+    """JetBrains Junie custom slash commands: .junie/commands/<name>.md, invoked as
+    /name. Frontmatter recognizes description; Junie uses named $argName parameters
+    (no catch-all token), so rewrite $ARGUMENTS."""
+    name = skill["name"]
+    dest = out_dir / "junie" / "commands" / f"{name}.md"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    body = skill["body"].replace("$ARGUMENTS", "the user's input")
+
+    lines = [
+        "---",
+        f'description: "{skill["description"]}"',
+        "---",
+        "",
+        body,
+    ]
+
+    dest.write_text("\n".join(lines))
+
+
+def build_amp(skill: dict, out_dir: Path):
+    """Amp (Sourcegraph) custom slash commands: .agents/commands/<name>.md, invoked as
+    /name — the file contents are inserted into the prompt. Plain markdown with no
+    frontmatter; no argument substitution, so rewrite $ARGUMENTS."""
+    name = skill["name"]
+    dest = out_dir / "amp" / "commands" / f"{name}.md"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    body = skill["body"].replace("$ARGUMENTS", "the user's input")
+
+    dest.write_text(body)
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -189,6 +298,12 @@ def build_all():
         build_opencode(skill, PLATFORMS_DIR)
         build_gemini(skill, PLATFORMS_DIR)
         build_cursor(skill, PLATFORMS_DIR)
+        build_windsurf(skill, PLATFORMS_DIR)
+        build_copilot(skill, PLATFORMS_DIR)
+        build_cline(skill, PLATFORMS_DIR)
+        build_zed(skill, PLATFORMS_DIR)
+        build_junie(skill, PLATFORMS_DIR)
+        build_amp(skill, PLATFORMS_DIR)
 
     print(f"Generated platform files in {PLATFORMS_DIR}/")
     for platform in sorted(PLATFORMS_DIR.iterdir()):
