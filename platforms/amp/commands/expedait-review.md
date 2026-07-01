@@ -1,11 +1,23 @@
 # Review Code Against Expedait Deliverables
 
-This skill drives the `expedait` CLI over Bash — no MCP tool required. Run every command as
-`uvx --from expedait-cli expedait <command>` (an isolated uv environment, no global install).
-
 This skill does two things: **read/triage the scoring findings** already on a deliverable,
-and **run a manual spec-vs-code comparison** yourself (the CLI has no automated
-codebase-review runner). Post divergences you find with `/expedait-comment`.
+and **run a manual spec-vs-code comparison** yourself (there is no automated codebase-review
+runner). Post divergences you find with `/expedait-comment`.
+
+## Transport: MCP or CLI (same reads, pick what you have)
+
+Reading and triaging findings runs over either of two transports, at parity:
+
+- **MCP tools** (`expedait:*`, hosted at `https://mcp.expedait.org`) — **prefer these when
+  they're in your tool list.** No install, no cold start, structured results. Reading is
+  `mcp:deliverables:read`; muting needs `mcp:deliverables:write`.
+- **The `expedait` CLI** — the fallback that works in any agent with a shell. Runs in an
+  isolated uv environment (no global install): `uvx --from expedait-cli expedait <command>`.
+
+Detection rule: if the `expedait:*` tools appear in your tool list, use them; otherwise use the
+CLI. The reads are identical on both. The manual comparison below is transport-agnostic — it's
+just `git` plus reading deliverables (which the CLI's `projects download` conveniently dumps to
+disk).
 
 ## First: check for skill updates
 
@@ -30,45 +42,38 @@ If it prints `EXPEDAIT_UPDATE_AVAILABLE <local> <latest>`, mention it once — "
 v<latest> is available (you're on v<local>); run `/expedait-update-skills` to update" — then
 carry on with the task below. If it prints nothing, say nothing and proceed.
 
-## Commands at a glance
+## Commands at a glance — MCP tool ↔ CLI command
 
-| Goal | Command (prefix each with `uvx --from expedait-cli expedait`) |
-|------|--------------------------------------------------------------|
-| **Read open review findings on a deliverable** | `review issues DELIVERABLE_ID --state open` |
-| Mute a finding that isn't actionable | `review mute ISSUE_ID --note "…"` (or `--unmute`) |
-| Pull fresh deliverables to compare against | `projects download PROJECT --output-dir .expedait/context` |
-| An objective's descendant tree | `objectives overview DELIVERABLE_ID` |
+CLI commands are prefixed with `uvx --from expedait-cli expedait`. MCP tool names are
+`ServerName:tool`, where the server is `expedait`.
+
+| Goal | MCP tool | CLI command |
+|------|----------|-------------|
+| **Read open review findings on a deliverable** | `expedait:list_review_issues(deliverable_id, state?)` | `review issues DELIVERABLE_ID --state open` |
+| Mute a finding that isn't actionable | `expedait:mute_review_issue(issue_id, muted?, muted_note?)` | `review mute ISSUE_ID --note "…"` (or `--unmute`) |
+| An objective's descendant tree | `expedait:get_objective_overview(id)` | `objectives overview DELIVERABLE_ID` |
+| Pull fresh deliverables to compare against | *(CLI only)* | `projects download PROJECT --output-dir .expedait/context` |
+
+`state` is `open | muted | all` (default `all`). Each issue carries severity, description, the
+criteria that flagged it, anchor offsets, and an optional reference. On MCP, pass `muted=false`
+to unmute. Mute findings that aren't actionable with a note explaining why (e.g. tracked
+elsewhere).
 
 ## Reading existing review findings
 
 ```bash
-# Scoring findings on a deliverable (severity, description, criteria, anchors)
+# CLI
 uvx --from expedait-cli expedait review issues DELIVERABLE_ID --state open
-
-# Mute a finding that isn't actionable (or --unmute to restore)
-uvx --from expedait-cli expedait review mute ISSUE_ID --note "tracked in JIRA-123"
+uvx --from expedait-cli expedait review mute ISSUE_ID --note "tracked in JIRA-123"   # --unmute to restore
 ```
 
-## Via the MCP server (reading & triaging findings)
-
-If you're connected to the hosted Expedait MCP server (`https://mcp.expedait.org`) instead
-of the CLI, you can read and triage review findings directly (tool names are `ServerName:tool`,
-where the server is `expedait`):
-
-```
-expedait:list_review_issues(deliverable_id, state?)   # state: open | muted | all (default all)
-expedait:mute_review_issue(issue_id, muted?, muted_note?)   # muted=false to unmute; needs mcp:deliverables:write
-```
-
-Each issue carries severity, description, the criteria that flagged it, anchor offsets, and
-an optional reference. Mute findings that aren't actionable with a `muted_note` explaining
-why (e.g. tracked elsewhere). If these tools aren't in your tool list, the connector isn't
-attached — use the CLI path above instead.
+Over MCP: `expedait:list_review_issues(deliverable_id, "open")` and
+`expedait:mute_review_issue(issue_id, muted=true, muted_note="tracked in JIRA-123")`.
 
 ## Manual path: scoped local report (no comments posted)
 
 When the user wants a local report to review *before* anything is written back, do the
-comparison yourself and scope it to what actually changed.
+comparison yourself and scope it to what actually changed. This path is transport-agnostic.
 
 ### Step 1: Determine review scope
 
@@ -90,19 +95,21 @@ Only review these changed files against the deliverables.
 
 ### Step 2: Fetch the latest deliverables
 
-Always pull fresh — stale local copies lead to false positives.
+Always pull fresh — stale local copies lead to false positives. On the CLI, `projects download`
+dumps one markdown file per deliverable to disk:
 
 ```bash
 uvx --from expedait-cli expedait projects download PROJECT --output-dir .expedait/context
 ```
 
-Extracts the deliverables to `.expedait/context/`.
+Over MCP (no download command), read the deliverables you need with
+`expedait:get_deliverable(id, include=["content"])` and `expedait:get_deliverable_context(id)`.
 
 ### Step 3: Identify high-signal deliverables
 
 Focus on the deliverables that define what the product should do and why:
 
-1. **Objectives** — top-level goals and their descendant tree. Read these first to understand intent (`expedait objectives overview DELIVERABLE_ID`).
+1. **Objectives** — top-level goals and their descendant tree. Read these first to understand intent (`expedait:get_objective_overview(id)` / `objectives overview DELIVERABLE_ID`).
 2. **Product Vision** — strategic intent. Look for `*vision*`, `*product-vision*` in `.expedait/context/`.
 3. **PRD** — detailed requirements. Look for `*prd*`, `*product-requirements*`.
 
@@ -110,7 +117,8 @@ Focus on the deliverables that define what the product should do and why:
 uvx --from expedait-cli expedait deliverables list --project-id PROJECT_ID --format json
 ```
 
-Keep track of deliverable IDs and titles — the report should reference them.
+(Over MCP: `expedait:list_deliverables(project_id)`.) Keep track of deliverable IDs and titles — the
+report should reference them.
 
 ### Step 4: Compare deliverables against code
 
@@ -158,5 +166,5 @@ finding, use `/expedait-comment` to anchor it to the exact deliverable text it d
 
 - On a feature branch, the merge-base diff is the right scope — reviewing unchanged files adds noise.
 - Always fetch fresh deliverables before reviewing.
-- `expedait deliverables inspect DELIVERABLE_ID` shows content + existing comments + dependencies in one call — handy to avoid duplicate comments.
-- Output format auto-detects: text in a terminal, JSON when piped. Use `--format json` to force JSON.
+- `deliverables inspect DELIVERABLE_ID` (CLI) shows content + existing comments + dependencies in one call — handy to avoid duplicate comments.
+- If the `expedait:*` tools aren't in your tool list, the connector isn't attached — use the CLI. CLI output auto-detects (text in a terminal, JSON when piped; `--format json` to force).
