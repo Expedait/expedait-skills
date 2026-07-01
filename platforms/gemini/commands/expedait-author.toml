@@ -3,12 +3,24 @@ description = "Author and edit Expedait deliverables — create a new spec docum
 prompt = """
 # Author & Edit Expedait Deliverables
 
-Run the CLI via `uvx --from expedait-cli expedait` — it runs in an isolated environment via
-uv, so no global install is needed. A **deliverable** is an Expedait spec document. As of CLI
-0.4.0 the CLI can create and edit deliverable content, not just read it.
+This skill drives the `expedait` CLI over Bash — no MCP tool required. Run every command as
+`uvx --from expedait-cli expedait <command>` (an isolated uv environment, no global install);
+authenticate once with `uvx --from expedait-cli expedait auth login`. A **deliverable** is an
+Expedait spec document; the CLI can create and edit its content, not just read it. Pass the
+project per command (by id or name) — there is no separate init step.
 
-Authenticate once (`uvx --from expedait-cli expedait auth login`); `expedait init` writes
-`.expedait/settings.json` so `--project` defaults for you.
+## Commands at a glance
+
+| Goal | Command (prefix each with `uvx --from expedait-cli expedait`) |
+|------|--------------------------------------------------------------|
+| Read a type's template + requirements before writing | `deliverables get ID --include meta,template,requirements,writer_instructions` |
+| Find the `--type` id for a new deliverable | `deliverables types` |
+| **Create a deliverable** | `deliverables create --project ID --type TYPE_ID --title "…" --content @file` |
+| Edit content (autosave, no version bump) | `deliverables edit ID --content @file` |
+| Rename | `deliverables rename ID --title "…"` |
+| Snapshot a restorable version | `deliverables save-version ID --reason "…"` |
+| Change state | `deliverables set-state ID --state "Review"` |
+| Create → fill → snapshot in one atomic call | `deliverables write --ops -` |
 
 ## Always read before you write
 
@@ -61,7 +73,7 @@ Valid states for `set-state`: `Not Started`, `In Progress`, `Review`, `Approved`
 ## Write — atomic multi-step (`deliverables write --ops`)
 
 To create-then-fill-then-snapshot in one atomic call, pass an ordered ops array (mirrors the
-MCP `write_deliverable` tool). Chain on a fresh deliverable with `id: "$last"`, or bind
+MCP `expedait:write_deliverable` tool). Chain on a fresh deliverable with `id: "$last"`, or bind
 `ref` on a create and reference `id: "@name"` later:
 
 ```bash
@@ -93,9 +105,10 @@ fails the rest are skipped and the result reports per-op `{status: ok | error | 
 ## Via the MCP server (alternative to the CLI)
 
 If you're connected to the hosted Expedait MCP server (`https://mcp.expedait.org`) instead of
-the CLI, the same workflow maps to one tool, `write_deliverable(ops=[...])`, with the identical
-op set (`create` / `edit` / `rename` / `save_version` / `set_state`) and `$last` / `@ref`
-chaining. Reads map to `get_deliverable(id, include=[...])`, `get_deliverable_context(id)`, and
-`get_objective_overview(id)`. Requires the `mcp:deliverables:write` scope — if those tools
-aren't in your tool list, the connector isn't attached; use the CLI above instead.
+the CLI, the same workflow maps to one tool, `expedait:write_deliverable(ops=[...])`, with the
+identical op set (`create` / `edit` / `rename` / `save_version` / `set_state`) and `$last` /
+`@ref` chaining. Reads map to `expedait:get_deliverable(id, include=[...])`,
+`expedait:get_deliverable_context(id)`, and `expedait:get_objective_overview(id)`. Tool names
+are `ServerName:tool` — the server is `expedait`. Requires the `mcp:deliverables:write` scope —
+if those tools aren't in your tool list, the connector isn't attached; use the CLI above instead.
 """

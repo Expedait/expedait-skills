@@ -1,0 +1,19 @@
+{
+  "id": 1,
+  "name": "Default PRD",
+  "phases": [
+    {
+      "id": 1,
+      "name": "Definition",
+      "deliverable_types": [
+        {
+          "id": 12,
+          "name": "PRD",
+          "owner_roles": [
+            "Product Manager"
+          ]
+        }
+      ]
+    }
+  ]
+}

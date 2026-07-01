@@ -17,3 +17,7 @@ __pycache__/
 
 # Specs downloaded during testing
 specs/
+
+# Eval battery output (kept workspaces + results JSON)
+evals/.results/
+evals-results.json

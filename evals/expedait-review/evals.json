@@ -1,0 +1,54 @@
+{
+  "skill_name": "expedait-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Show me the open review findings on deliverable 10.",
+      "expected_output": "Reads the open scoring findings on deliverable 10.",
+      "files": {},
+      "assertions": [
+        {"name": "reads-issues", "description": "Runs review issues for deliverable 10"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["review", "issues", "10"]}
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "prompt": "Mute review issue 55 — it's already tracked in JIRA-123.",
+      "expected_output": "Mutes issue 55 with an explanatory note.",
+      "files": {},
+      "assertions": [
+        {"name": "mutes-issue", "description": "Runs review mute for issue 55"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["review", "mute", "55"]}
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "prompt": "Review my current branch against the specs for project 1 and give me a local consistency report.",
+      "expected_output": "Fetches fresh deliverables and produces a local report without auto-posting comments.",
+      "files": {
+        "src/auth/login.ts": "// basic JWT auth, no PKCE\nexport function login() {}\n"
+      },
+      "setup": {"git": true},
+      "assertions": [
+        {"name": "fetches-fresh", "description": "Runs projects download to get fresh deliverables"},
+        {"name": "stays-local", "description": "Does not post comments — the manual report stays local until the user decides"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["projects", "download"]}
+        ],
+        "must_not_call": [
+          {"args_contain": ["comments", "create"]}
+        ]
+      }
+    }
+  ]
+}

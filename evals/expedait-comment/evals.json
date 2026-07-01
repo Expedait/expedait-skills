@@ -1,0 +1,58 @@
+{
+  "skill_name": "expedait-comment",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Comment on deliverable 5 flagging that the Authentication section never mentions PKCE.",
+      "expected_output": "Reads the deliverable to quote the exact span, then creates an anchored comment.",
+      "files": {},
+      "assertions": [
+        {"name": "reads-before-anchoring", "description": "Reads deliverable 5 to quote exact text"},
+        {"name": "creates-comment", "description": "Runs comments create with --text and --selected-text"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["deliverables", "get", "5"]},
+          {"args_contain": ["comments", "create"]},
+          {"args_contain": ["--selected-text"]},
+          {"args_contain": ["--text"]}
+        ],
+        "order": [
+          {"args_contain": ["deliverables", "get", "5"]},
+          {"args_contain": ["comments", "create"]}
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "prompt": "Resolve comment 42 on deliverable 5.",
+      "expected_output": "Marks comment 42 as resolved.",
+      "files": {},
+      "assertions": [
+        {"name": "resolves", "description": "Runs comments resolve for deliverable 5 comment 42"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["comments", "resolve", "5", "42"]}
+        ],
+        "must_not_call": [
+          {"args_contain": ["comments", "delete"]}
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "prompt": "List the comments currently on deliverable 5.",
+      "expected_output": "Lists the comments on deliverable 5.",
+      "files": {},
+      "assertions": [
+        {"name": "lists-comments", "description": "Runs comments list for deliverable 5"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["comments", "list", "5"]}
+        ]
+      }
+    }
+  ]
+}

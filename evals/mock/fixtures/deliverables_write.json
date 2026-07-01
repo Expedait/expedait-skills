@@ -1,0 +1,24 @@
+{
+  "results": [
+    {
+      "op": "create",
+      "status": "ok",
+      "id": 99
+    },
+    {
+      "op": "edit",
+      "status": "ok"
+    },
+    {
+      "op": "save_version",
+      "status": "ok"
+    },
+    {
+      "op": "set_state",
+      "status": "ok"
+    }
+  ],
+  "affected_ids": [
+    99
+  ]
+}

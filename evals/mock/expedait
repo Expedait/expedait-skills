@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Mock `expedait` CLI for the local eval battery.
+
+It records every invocation to the JSONL log named by $EXPEDAIT_MOCK_LOG (one
+`{"argv": [...]}` line per call) so grade.py can assert on which commands the agent
+chose. It never touches the network: it prints a canned fixture keyed by the first two
+positional tokens (`<group>_<command>.json` under fixtures/), falling back to a generic
+`{"status": "ok"}`. A couple of commands have side effects so the agent's downstream
+steps don't dead-end (notably `projects download`, which writes sample deliverables).
+"""
+
+import json
+import os
+import sys
+from pathlib import Path
+
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+
+
+def flag_value(args, flag):
+    for i, a in enumerate(args):
+        if a == flag and i + 1 < len(args):
+            return args[i + 1]
+        if a.startswith(flag + "="):
+            return a.split("=", 1)[1]
+    return None
+
+
+def main():
+    args = sys.argv[1:]
+
+    log_path = os.environ.get("EXPEDAIT_MOCK_LOG")
+    if log_path:
+        with open(log_path, "a") as f:
+            f.write(json.dumps({"argv": args}) + "\n")
+
+    positional = [a for a in args if not a.startswith("-")]
+
+    # Side effect: `projects download PROJECT --output-dir DIR` drops sample deliverables
+    # so a downstream Read/Grep in a skill has something to work with.
+    if positional[:2] == ["projects", "download"]:
+        out = flag_value(args, "--output-dir")
+        if out:
+            d = Path(out)
+            d.mkdir(parents=True, exist_ok=True)
+            (d / "product-vision.md").write_text(
+                "# Product Vision\n\nDeliver an offline-first spec tool.\n"
+            )
+            (d / "auth-prd.md").write_text(
+                "# Auth PRD\n\n## Authentication\n\nUse OAuth2 PKCE.\n"
+            )
+
+    key = None
+    if len(positional) >= 2:
+        key = f"{positional[0]}_{positional[1]}"
+    elif positional:
+        key = positional[0]
+
+    fixture = None
+    if key:
+        fp = FIXTURES / f"{key}.json"
+        if fp.exists():
+            fixture = fp.read_text().rstrip("\n")
+
+    if fixture is None:
+        fixture = json.dumps({"status": "ok", "command": positional})
+
+    sys.stdout.write(fixture + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

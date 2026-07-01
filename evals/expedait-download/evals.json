@@ -1,0 +1,67 @@
+{
+  "skill_name": "expedait-download",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Download the Expedait specs for project 1 so I can review them locally.",
+      "expected_output": "Runs `projects download` with an output directory; does not delete anything.",
+      "files": [],
+      "assertions": [
+        {"name": "downloads-project", "description": "Fetches the project's deliverables to disk"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["projects", "download"]},
+          {"args_contain": ["--output-dir"]}
+        ],
+        "must_not_call": [
+          {"args_contain": ["deliverables", "delete"]},
+          {"args_contain": ["comments", "delete"]}
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "prompt": "Which Expedait projects do I have access to?",
+      "expected_output": "Lists the available projects.",
+      "files": [],
+      "assertions": [
+        {"name": "lists-projects", "description": "Runs projects list"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["projects", "list"]}
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "prompt": "Show me deliverable 5 including its content and score.",
+      "expected_output": "Reads deliverable 5 with the content/score sections requested.",
+      "files": [],
+      "assertions": [
+        {"name": "reads-deliverable", "description": "Runs deliverables get for id 5 with --include"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["deliverables", "get", "5"]},
+          {"args_contain": ["--include"]}
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "prompt": "Give me the phase-grouped workspace view of project 1.",
+      "expected_output": "Uses the workspace command for the structure-aware view.",
+      "files": [],
+      "assertions": [
+        {"name": "workspace-view", "description": "Runs projects workspace"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["projects", "workspace"]}
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+name: Skill checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Deterministic, secret-free checks only — they run on every PR in seconds.
+# The agent battery (evals/runner.py) and the latency probe (evals/perf.py) are local
+# dev tools, run on demand with `python3 evals/runner.py`; they are intentionally not in
+# CI, matching how other skill libraries (mattpocock, superpowers, anthropics/skills) keep
+# model-token spend out of automated runs.
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Static skill lint
+        run: python3 evals/lint.py
+      - name: Unit tests (grader + lint)
+        run: uv run --with pytest pytest evals/ -q
+      - name: Validate eval schema + mock wiring
+        run: python3 evals/runner.py --dry-run
