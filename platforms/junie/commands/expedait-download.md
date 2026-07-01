@@ -9,10 +9,22 @@ pull a project's **specs** — objectives, deliverables, and their assembled con
 the working directory, then implement or review against them. That is the Expedait
 aha-moment: the real requirements in the agent's context, one command away.
 
-Every command runs through the CLI: `uvx --from expedait-cli expedait <command>` — an
-isolated uv environment, so no global install is needed. Authenticate once with
-`uvx --from expedait-cli expedait auth login` (cached in `~/.expedait/config.json`); check
-with `auth status`.
+## Transport: MCP or CLI (same data, pick what you have)
+
+These reads run over either of two transports, at parity:
+
+- **MCP tools** (`expedait:*`, hosted at `https://mcp.expedait.org`) — **prefer these when
+  they're in your tool list.** No install, no cold start, structured results. Read scope is
+  `mcp:deliverables:read`.
+- **The `expedait` CLI** — the fallback that works in any agent with a shell. Runs in an
+  isolated uv environment (no global install): `uvx --from expedait-cli expedait <command>`.
+  Authenticate once with `uvx --from expedait-cli expedait auth login` (cached in
+  `~/.expedait/config.json`; check with `auth status`).
+
+Detection rule: if the `expedait:*` tools appear in your tool list, use them; otherwise use
+the CLI. The reads are identical on both — only the invocation differs. The table below gives
+both forms side by side. (`projects download`, `projects workspace`, and `deliverables inspect`
+are CLI-only — no MCP equivalent yet.)
 
 ## First: check for skill updates
 
@@ -37,23 +49,28 @@ If it prints `EXPEDAIT_UPDATE_AVAILABLE <local> <latest>`, mention it once — "
 v<latest> is available (you're on v<local>); run `/expedait-update-skills` to update" — then
 carry on with the task below. If it prints nothing, say nothing and proceed.
 
-## Commands at a glance
+## Commands at a glance — MCP tool ↔ CLI command
 
-Run any of these directly — this skill drives the `expedait` CLI over Bash (no MCP tool
-required). `PROJECT` is a numeric id, a name/substring, or omitted for an interactive pick.
+`PROJECT` is a numeric id, a name/substring, or omitted for an interactive pick. CLI commands
+are prefixed with `uvx --from expedait-cli expedait`. MCP tool names are `ServerName:tool`,
+where the server is `expedait`.
 
-| Goal | Command (prefix each with `uvx --from expedait-cli expedait`) |
-|------|--------------------------------------------------------------|
-| **List your projects** | `projects list` |
-| Download a project's whole spec set to disk | `projects download PROJECT --output-dir .expedait/context` |
-| See deliverables grouped by phase | `projects workspace PROJECT` |
-| List a project's deliverables | `deliverables list --project-id PROJECT_ID` |
-| Read one deliverable | `deliverables get DELIVERABLE_ID [--include content,score,…]` |
-| Richest single read (content + comments + deps + lock) | `deliverables inspect DELIVERABLE_ID` |
-| Assembled LLM context for a deliverable | `context get DELIVERABLE_ID` |
-| An objective's descendant tree | `objectives overview DELIVERABLE_ID` |
+| Goal | MCP tool | CLI command |
+|------|----------|-------------|
+| **List your projects** | `list_projects()` | `projects list` |
+| Deliverables grouped by phase | `get_project_workspace(project_id)` | `projects workspace PROJECT` |
+| Download a project's whole spec set to disk | *(CLI only)* | `projects download PROJECT --output-dir .expedait/context` |
+| List a project's deliverables | `list_deliverables(project_id)` | `deliverables list --project-id PROJECT_ID` |
+| Read one deliverable (section-aware) | `get_deliverable(id, include=[…])` | `deliverables get DELIVERABLE_ID [--include …]` |
+| Richest single read (content + comments + deps + lock) | *(CLI only)* | `deliverables inspect DELIVERABLE_ID` |
+| Assembled LLM context for a deliverable | `get_deliverable_context(id)` | `context get DELIVERABLE_ID` |
+| An objective's descendant tree | `get_objective_overview(id)` | `objectives overview DELIVERABLE_ID` |
 
-Output auto-detects: text in a terminal, JSON when piped (`--format json` to force).
+`get_deliverable` / `deliverables get` default to cheap `meta`-only; opt into heavier sections
+only when you need them: `content`, `score`, `template`, `requirements`, `writer_instructions`,
+`dependencies`, `external_context`, `comments`, `versions`. MCP responses are capped at 32 KB
+with truncation reported via `truncated` / `truncated_fields`. CLI output auto-detects: text in
+a terminal, JSON when piped (`--format json` to force it).
 
 ## The spec model
 
@@ -64,36 +81,18 @@ Output auto-detects: text in a terminal, JSON when piped (`--format json` to for
 
 ## Typical flow
 
-1. **Find the project.** `projects list` (skip if a project id/name was given via the user's input). Done when you have the id or name.
-2. **Pull the specs.** `projects download PROJECT --output-dir .expedait/context` — extracts one markdown file per deliverable. Done when the files exist on disk.
-3. **Read before implementing.** Read the downloaded deliverables — objectives and PRD first — so the work matches the requirements.
+1. **Find the project.** `list_projects()` / `projects list` (skip if a project id/name was given via the user's input). Done when you have the id or name.
+2. **Pull the specs.** On the CLI, `projects download PROJECT --output-dir .expedait/context` extracts one markdown file per deliverable to disk. Over MCP (no download command), read the deliverables you need with `get_deliverable(id, include=["content"])`. Done when you have the content.
+3. **Read before implementing.** Read the objectives and PRD first so the work matches the requirements.
 
-For `deliverables get`, opt into heavier sections as needed:
-`--include content,score,template,requirements,writer_instructions,dependencies,external_context,comments,versions`.
+## Once you understand a project
 
-## Via the MCP server (no CLI)
-
-If you're connected to the hosted Expedait MCP server (`https://mcp.expedait.org`), the same
-reads map to these tools (fully-qualified as `ServerName:tool`, where the server is `expedait`;
-all read-only, `mcp:deliverables:read`):
-
-```
-expedait:list_projects()                     expedait:get_project_workspace(project_id)   # phase grouping
-expedait:list_deliverables(project_id)       expedait:get_deliverable(id, include=[...])  # section-aware
-expedait:get_objective_overview(id)          expedait:get_deliverable_context(id)         # assembled LLM context
-```
-
-`expedait:get_deliverable` defaults to cheap `meta`-only; opt into heavier sections (`content`,
-`template`, `requirements`, `writer_instructions`, `dependencies`, `external_context`,
-`score`, `comments`, `versions`) only when you need them. Responses are capped at 32 KB with
-truncation reported via `truncated` / `truncated_fields`.
-
-Once you understand a project, the MCP server can also **write**: use `/expedait-author` to
-create or edit deliverables, and `/expedait-process` to design the project-type template.
+Both transports can also **write**: use `/expedait-author` to create or edit deliverables,
+`/expedait-comment` to annotate them, and `/expedait-process` to design the project-type
+template.
 
 ## Tips
 
-- Output format auto-detects: text in a terminal, JSON when piped. Use `--format json` to force JSON.
-- `deliverables inspect` and `context get` are the richest single-call reads — they include dependency relationships, so you understand how deliverables reference each other.
-- Settings resolution order: CLI flag → environment variable (`EXPEDAIT_TOKEN`, `EXPEDAIT_API_URL`, `EXPEDAIT_TENANT_ID`) → `~/.expedait/config.json`.
-- Prefer the hosted MCP server (`https://mcp.expedait.org`) when your AI client supports connectors — it exposes the same primitives without the CLI.
+- `deliverables inspect` and `context get` / `get_deliverable_context` are the richest single-call reads — they include dependency relationships, so you understand how deliverables reference each other.
+- CLI settings resolution order: CLI flag → environment variable (`EXPEDAIT_TOKEN`, `EXPEDAIT_API_URL`, `EXPEDAIT_TENANT_ID`) → `~/.expedait/config.json`.
+- If the `expedait:*` tools aren't in your tool list, the connector isn't attached — use the CLI path. If neither is available, authenticate the CLI with `auth login` first.

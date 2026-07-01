@@ -6,10 +6,23 @@ allowed-tools: Bash, Read, Glob, Grep
 
 # Post a Comment on an Expedait Deliverable
 
-This skill drives the `expedait` CLI over Bash — no MCP tool required. Run every command
-as `uvx --from expedait-cli expedait <command>` (an isolated uv environment, no global
-install). A **deliverable** is an Expedait spec document; comments anchor to a span of its
-content.
+A **deliverable** is an Expedait spec document; comments anchor to a span of its content.
+
+## Transport: MCP or CLI (same workflow, pick what you have)
+
+Commenting runs over either of two transports, at parity:
+
+- **MCP tools** (`expedait:*`, hosted at `https://mcp.expedait.org`) — **prefer these when
+  they're in your tool list.** No install, no cold start, structured args. Writing comments
+  needs the `mcp:comments:write` scope.
+- **The `expedait` CLI** — the fallback that works in any agent with a shell. Runs in an
+  isolated uv environment (no global install): `uvx --from expedait-cli expedait <command>`.
+  Authenticate once with `uvx --from expedait-cli expedait auth login`.
+
+Detection rule: if the `expedait:*` tools appear in your tool list, use them; otherwise use the
+CLI. The workflow is the same on both; the one real difference is how the anchor is specified —
+the CLI resolves offsets for you from `--selected-text`, while the MCP tool takes explicit
+`start_offset` / `end_offset` (see "Anchoring over MCP" below).
 
 ## First: check for skill updates
 
@@ -34,25 +47,27 @@ If it prints `EXPEDAIT_UPDATE_AVAILABLE <local> <latest>`, mention it once — "
 v<latest> is available (you're on v<local>); run `/expedait-update-skills` to update" — then
 carry on with the task below. If it prints nothing, say nothing and proceed.
 
-## Commands at a glance
+## Commands at a glance — MCP tool ↔ CLI command
 
-| Goal | Command (prefix each with `uvx --from expedait-cli expedait`) |
-|------|--------------------------------------------------------------|
-| Read the deliverable to quote an exact span | `deliverables get DELIVERABLE_ID` |
-| **Post an anchored comment** | `comments create DELIVERABLE_ID --text "…" --selected-text "…"` |
-| List existing comments | `comments list DELIVERABLE_ID` |
-| Resolve a comment | `comments resolve DELIVERABLE_ID COMMENT_ID` |
-| Delete a comment | `comments delete DELIVERABLE_ID COMMENT_ID` |
+CLI commands are prefixed with `uvx --from expedait-cli expedait`. MCP tool names are
+`ServerName:tool`, where the server is `expedait`.
+
+| Goal | MCP tool | CLI command |
+|------|----------|-------------|
+| Read the deliverable to quote an exact span | `get_deliverable(id, include=["content"])` | `deliverables get DELIVERABLE_ID` |
+| List existing comments (avoid dupes) | `list_comments(deliverable_id)` | `comments list DELIVERABLE_ID` |
+| **Post an anchored comment** | `create_comment(deliverable_id, text, selected_text, start_offset, end_offset, …)` | `comments create DELIVERABLE_ID --text "…" --selected-text "…"` |
+| Resolve a comment (idempotent) | `resolve_comment(deliverable_id, comment_id)` | `comments resolve DELIVERABLE_ID COMMENT_ID` |
+| Delete a comment | *(CLI only)* | `comments delete DELIVERABLE_ID COMMENT_ID` |
 
 ## Steps
 
-1. Get the deliverable content so you can quote the exact text to anchor the comment to:
-   ```bash
-   uvx --from expedait-cli expedait deliverables get DELIVERABLE_ID
-   ```
+1. **Read the deliverable content** so you can quote the exact text to anchor to —
+   `get_deliverable(id, include=["content"])` (MCP) or `deliverables get DELIVERABLE_ID` (CLI).
 
-2. Create the comment. Pass the exact span via `--selected-text`; the CLI resolves the
-   anchor offsets for you, so you don't compute them by hand:
+2. **Create the comment**, passing the exact span.
+
+   **CLI** — pass the span via `--selected-text`; the CLI resolves the anchor offsets for you:
    ```bash
    uvx --from expedait-cli expedait comments create DELIVERABLE_ID \
      --text "Your comment" \
@@ -60,54 +75,42 @@ carry on with the task below. If it prints nothing, say nothing and proceed.
      --source-deliverable-id SOURCE_DELIVERABLE_ID
    ```
 
-3. Verify:
-   ```bash
-   uvx --from expedait-cli expedait comments list DELIVERABLE_ID --format json
-   ```
+   **MCP** — `create_comment(deliverable_id, text, selected_text, start_offset, end_offset,
+   parent_comment_id?, client_request_id?)`. See "Anchoring over MCP" for how to compute offsets.
 
-## Options
+3. **Verify:** `list_comments(deliverable_id)` (MCP) or `comments list DELIVERABLE_ID --format json` (CLI).
 
-- `--text` (required): Your comment content
-- `--selected-text` (required): Exact text from the deliverable being commented on
-- `--source-deliverable-id` (optional): The deliverable your agent is working from — enables cross-deliverable notification workflows
-- `--parent-comment-id` (optional): Reply to an existing comment
-- `--agent-run-id` (optional): Link the comment to a build run
+## Options / fields
 
-## Resolving and Deleting Comments
+- `text` (required): Your comment content
+- `selected_text` (required): Exact text from the deliverable being commented on
+- `source_deliverable_id` / `--source-deliverable-id` (optional): The deliverable your agent is working from — enables cross-deliverable notification workflows
+- `parent_comment_id` / `--parent-comment-id` (optional): Reply to an existing comment
+- `--agent-run-id` (CLI, optional): Link the comment to a build run
+- `client_request_id` (MCP, optional): Makes the create idempotent if you retry
+
+## Anchoring over MCP
+
+Unlike the CLI, `create_comment` takes explicit `start_offset` / `end_offset`: 0-based character
+offsets into the `content` string returned by `get_deliverable(id, include=["content"])`. Find
+`selected_text` in that string — `start_offset` is its index, `end_offset` is
+`start_offset + len(selected_text)`. The CLI computes these for you from `--selected-text`.
+
+## Resolving and deleting
 
 ```bash
-# Mark a comment as resolved
-uvx --from expedait-cli expedait comments resolve DELIVERABLE_ID COMMENT_ID
-
-# Delete a comment
-uvx --from expedait-cli expedait comments delete DELIVERABLE_ID COMMENT_ID
+# CLI
+uvx --from expedait-cli expedait comments resolve DELIVERABLE_ID COMMENT_ID   # mark resolved
+uvx --from expedait-cli expedait comments delete DELIVERABLE_ID COMMENT_ID    # delete
 ```
 
-## Via the MCP server (no CLI)
-
-If you're connected to the hosted Expedait MCP server (`https://mcp.expedait.org`) instead
-of the CLI, the same workflow maps to these tools (fully-qualified as `ServerName:tool`, where
-the server is `expedait`; requires the `mcp:comments:write` scope):
-
-```
-expedait:get_deliverable(id, include=["content"])   # quote exact span to anchor to
-expedait:list_comments(deliverable_id)              # see existing comments, avoid dupes
-expedait:create_comment(deliverable_id, text, selected_text, start_offset, end_offset,
-               parent_comment_id?, client_request_id?)
-expedait:resolve_comment(deliverable_id, comment_id)   # idempotent
-```
-
-Unlike the CLI, `expedait:create_comment` takes explicit `start_offset` / `end_offset`: they are
-0-based character offsets into the `content` string returned by
-`expedait:get_deliverable(id, include=["content"])`. Find `selected_text` in that string —
-`start_offset` is its index, `end_offset` is `start_offset + len(selected_text)`. Pass
-`client_request_id` to make the create idempotent if you retry. If these tools aren't in your
-tool list, the connector isn't attached — use the CLI path above instead.
+Over MCP, `resolve_comment(deliverable_id, comment_id)` is idempotent. (Deleting a comment is
+CLI-only today.)
 
 ## Tips
 
 - Comments created via the CLI are auto-marked as agent comments (`is_agent_comment: true`).
-- Use `--source-deliverable-id` for cross-deliverable notification workflows.
+- Use `source_deliverable_id` for cross-deliverable notification workflows.
 - Keep comments actionable: describe what diverged and why.
-- If the span you pass to `--selected-text` is ambiguous or no longer present (the deliverable changed), the command fails — re-fetch with `deliverables get` and quote fresh text.
-- Output format auto-detects: text in a terminal, JSON when piped. Use `--format json` to force JSON.
+- If the span you pass is ambiguous or no longer present (the deliverable changed), the create fails — re-fetch the content and quote fresh text.
+- If the `expedait:*` tools aren't in your tool list, the connector isn't attached — use the CLI. CLI output auto-detects (text in a terminal, JSON when piped; `--format json` to force).

@@ -5,9 +5,38 @@ trigger: manual
 
 # Create or Adapt an Expedait Process
 
-This skill drives the `expedait` CLI over Bash — no MCP tool required. Run every command as
-`uvx --from expedait-cli expedait <command>` (an isolated uv environment, no global install);
-authenticate once with `uvx --from expedait-cli expedait auth login`.
+A **process** is the template layer of Expedait — the project type that every project is
+instantiated from. Editing a process reshapes **every** project built from it.
+
+## Transport: MCP or CLI (same op model, pick what you have)
+
+Process building runs over either of two transports, at parity:
+
+- **MCP tools** (`expedait:*`, hosted at `https://mcp.expedait.org`) — **prefer these when
+  they're in your tool list.** No install, no cold start, and the ops array is a structured
+  argument, so you never hand-escape JSON in a shell. Writing needs the `mcp:process:write`
+  scope (kept separate from `mcp:deliverables:write` on purpose — reshaping a template touches
+  every project of that type).
+- **The `expedait` CLI** — the fallback that works in any agent with a shell. Runs in an
+  isolated uv environment (no global install): `uvx --from expedait-cli expedait <command>`.
+  Authenticate once with `uvx --from expedait-cli expedait auth login`.
+
+Detection rule: if the `expedait:*` tools appear in your tool list, use them; otherwise use the
+CLI. **The op model is identical on both** — the same `ops` array with `ref` / `@ref` chaining.
+Only the invocation envelope differs, as the table below shows.
+
+Its shape:
+
+- **Phases** — ordered stages of the process (e.g. Discovery → Definition → Design).
+- **Phase rows** — optional horizontal lanes inside a phase for laying out cards.
+- **Deliverable types** — the cards in each phase, each a template for a deliverable (PRD,
+  vision, persona, …) with its own instructions, template content, and requirements. A card
+  flagged `is_objective` owns its own **subprocess** (an inner set of phases) — that is how an
+  objective nests child deliverables.
+- **Dependencies** — directed edges between deliverable types (which upstream deliverables
+  feed a deliverable's LLM context). Only siblings may depend on each other.
+- **Owner roles** — the project role(s) responsible for each deliverable type, drawn from the
+  workspace's role pool.
 
 ## First: check for skill updates
 
@@ -32,34 +61,24 @@ If it prints `EXPEDAIT_UPDATE_AVAILABLE <local> <latest>`, mention it once — "
 v<latest> is available (you're on v<local>); run `/expedait-update-skills` to update" — then
 carry on with the task below. If it prints nothing, say nothing and proceed.
 
-## Commands at a glance
+## Commands at a glance — MCP tool ↔ CLI command
 
-| Goal | Command (prefix each with `uvx --from expedait-cli expedait`) |
-|------|--------------------------------------------------------------|
-| List existing processes | `processes list` |
-| Inspect a process (full tree) | `processes get PROCESS_ID` |
-| List the workspace role pool | `roles list` |
-| Create an owner role | `roles create --name "…" --instructions @file` |
-| **Build or modify a process atomically** | `processes write --ops -` |
-| Change several roles atomically | `roles write --ops -` |
+CLI commands are prefixed with `uvx --from expedait-cli expedait`. MCP tool names are
+`ServerName:tool`, where the server is `expedait`.
 
-A **process** is the template layer of Expedait — the project type that every project is
-instantiated from. Editing a process reshapes **every** project built from it. Its shape:
-
-- **Phases** — ordered stages of the process (e.g. Discovery → Definition → Design).
-- **Phase rows** — optional horizontal lanes inside a phase for laying out cards.
-- **Deliverable types** — the cards in each phase, each a template for a deliverable (PRD,
-  vision, persona, …) with its own instructions, template content, and requirements. A card
-  flagged `is_objective` owns its own **subprocess** (an inner set of phases) — that is how an
-  objective nests child deliverables.
-- **Dependencies** — directed edges between deliverable types (which upstream deliverables
-  feed a deliverable's LLM context). Only siblings may depend on each other.
-- **Owner roles** — the project role(s) responsible for each deliverable type, drawn from the
-  workspace's role pool.
+| Goal | MCP tool | CLI command |
+|------|----------|-------------|
+| List existing processes | `list_processes()` | `processes list` |
+| Inspect a process (full tree) | `get_process(id)` | `processes get PROCESS_ID` |
+| List the workspace role pool | `list_roles()` | `roles list` |
+| **Build or modify a process atomically** | `write_process(ops=[…])` | `processes write --ops -` |
+| Create / change roles atomically | `write_role(ops=[…])` | `roles write --ops -` |
+| Create an owner role (ergonomic) | via `write_role` `create_role` op | `roles create --name "…" --instructions @file` |
 
 ## Look before you build
 
-Reuse or extend rather than duplicate, and inspect any process you'll adapt:
+Reuse or extend rather than duplicate, and inspect any process you'll adapt —
+`list_processes()` / `get_process(id)` (MCP) or:
 
 ```bash
 uvx --from expedait-cli expedait processes list                 # id, name, description, icon
@@ -68,7 +87,7 @@ uvx --from expedait-cli expedait processes get PROCESS_ID       # full tree: pha
 
 ## Check (or create) the role pool
 
-Owner roles are assigned by name or id. See what exists, and create any that don't:
+Owner roles are assigned by name or id. See what exists, and create any that don't. On the CLI:
 
 ```bash
 uvx --from expedait-cli expedait roles list
@@ -79,19 +98,20 @@ uvx --from expedait-cli expedait roles update ROLE_ID --description "..."
 uvx --from expedait-cli expedait roles delete ROLE_ID
 ```
 
-`--instructions` is the role's LLM coaching persona (the system prompt for deliverables this
-role owns). For several role changes at once, use the atomic `roles write --ops` form
-(`create_role` / `update_role` / `delete_role`, chainable with `ref` / `@ref`).
+`instructions` is the role's LLM coaching persona (the system prompt for deliverables this role
+owns). For several role changes at once, use the atomic `write_role(ops=[…])` /
+`roles write --ops` form (`create_role` / `update_role` / `delete_role`, chainable with
+`ref` / `@ref`).
 
-## Build the process in one `processes write` call
+## Build the process in one write call (identical op model on both transports)
 
-Process building is one atomic ops array (mirrors the MCP `expedait:write_process` tool). Ops execute
-in order and chain across entity kinds via **named refs**: a create op carries `ref: "x"`,
-later ops reference `"@x"`. You don't compute canvas coordinates — omit `col_position` / rows
-and cards auto-place.
+Process building is one atomic `ops` array. Ops execute in order and chain across entity kinds
+via **named refs**: a create op carries `ref: "x"`, later ops reference `"@x"`. You don't
+compute canvas coordinates — omit `col_position` / rows and cards auto-place.
 
-```bash
-uvx --from expedait-cli expedait processes write --ops - <<'JSON'
+The `ops` array is the same JSON on both transports:
+
+```json
 [
   {"op": "create_process", "ref": "p", "name": "Lean PRD", "description": "Vision → PRD"},
   {"op": "create_phase", "ref": "ph", "process_id": "@p", "name": "Definition"},
@@ -103,14 +123,28 @@ uvx --from expedait-cli expedait processes write --ops - <<'JSON'
   {"op": "set_dependencies", "type_id": "@prd", "dependency_ids": ["@vision"]},
   {"op": "set_owner_roles", "type_id": "@prd", "role_names": ["Product Manager"]}
 ]
-JSON
 ```
 
-`--ops` accepts `@file.json`, `-` (stdin), or an inline string. **Verify** with
-`processes get PROCESS_ID` — the write result also reports per-op `{status, …}` and the new
-ids (`affected_ids`) so you know the new process id to read back.
+- **MCP (preferred):** `write_process(ops=[…])` — pass the array as a structured argument,
+  no shell escaping.
+- **CLI:** `processes write --ops -` and feed the array on stdin (or `@file.json`, or an inline
+  string):
+  ```bash
+  uvx --from expedait-cli expedait processes write --ops - <<'JSON'
+  [
+    {"op": "create_process", "ref": "p", "name": "Lean PRD", "description": "Vision → PRD"},
+    {"op": "create_phase", "ref": "ph", "process_id": "@p", "name": "Definition"},
+    {"op": "create_deliverable_type", "ref": "prd", "phase_id": "@ph", "name": "PRD",
+     "abbreviation": "PRD"},
+    {"op": "set_owner_roles", "type_id": "@prd", "role_names": ["Product Manager"]}
+  ]
+  JSON
+  ```
 
-## `processes write` op reference
+**Verify** with `get_process(id)` / `processes get PROCESS_ID` — the write result also reports
+per-op `{status, …}` and the new ids (`affected_ids`) so you know the new process id to read back.
+
+## `write_process` op reference
 
 - `{op: "create_process", ref?, name, description?, instructions?, icon?}`
 - `{op: "update_process", id, …}` / `{op: "duplicate_process", ref?, id}` /
@@ -134,8 +168,8 @@ ids (`affected_ids`) so you know the new process id to read back.
 
 ## Tips
 
-- **One call, many ops.** A single `processes write` builds a whole process — refs let
-  create → wire-deps → assign-roles happen atomically (cap 50 ops).
+- **One call, many ops.** A single write builds a whole process — refs let create → wire-deps →
+  assign-roles happen atomically (cap 50 ops).
 - **Per-op results.** Ops stop on the first failure; the rest report `skipped`. Each result is
   `{status: ok | error | skipped}` with a structured `{error_code, error, fix_hint}` (e.g.
   `bad_ref`, `delete_in_use`) — read it to know exactly which ops landed.
@@ -144,13 +178,5 @@ ids (`affected_ids`) so you know the new process id to read back.
   with the user first.
 - **Objectives nest.** Create a deliverable type with `is_objective: true`, then add its inner
   phases with `create_phase` using `parent_type_id: "@thatcard"`.
-
-## Via the MCP server (alternative to the CLI)
-
-Connected to the hosted Expedait MCP server (`https://mcp.expedait.org`) instead of the CLI?
-The same surface maps to `expedait:list_processes` / `expedait:get_process` / `expedait:list_roles`,
-`expedait:write_process(ops=[...])`, and `expedait:write_role(ops=[...])` (tool names are
-`ServerName:tool`, where the server is `expedait`), with the identical op set and named refs. Requires the
-`mcp:process:write` scope (kept separate from `mcp:deliverables:write` on purpose, since
-reshaping a template touches every project of that type). If those tools aren't in your tool
-list, the connector isn't attached — use the CLI above instead.
+- If the `expedait:*` tools aren't in your tool list, the connector isn't attached — use the
+  CLI. CLI output auto-detects (text in a terminal, JSON when piped; `--format json` to force).
