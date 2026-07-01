@@ -3,6 +3,8 @@
 Thanks for helping improve the Expedait agent skills. This repo holds step-by-step
 guides that AI coding agents use to drive the Expedait CLI and MCP server.
 
+By participating, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Architecture
 
 Skills are authored **once** in `skills/*/SKILL.md` — the single source of truth — and
