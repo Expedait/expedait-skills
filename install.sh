@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/skills"
 PLATFORMS_DIR="$SCRIPT_DIR/platforms"
 TARGET_DIR="${TARGET_DIR:-.}"
-VERSION="0.4.0"
+VERSION="0.5.0"
 VERSION_FILE=".expedait-skills-version"
 GITHUB_LATEST="https://api.github.com/repos/Expedait/expedait-skills/releases/latest"
 
@@ -80,7 +80,7 @@ write_version() {
 install_claude_code() {
   local dir="$TARGET_DIR/.claude/skills"
 
-  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process; do
+  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process expedait-update-skills; do
     if [[ ! -f "$SKILLS_DIR/$skill/SKILL.md" ]]; then
       error "Missing skill source: $SKILLS_DIR/$skill/SKILL.md"
       exit 1
@@ -95,6 +95,7 @@ install_claude_code() {
   info "  /expedait-review    — review code against specs"
   info "  /expedait-author    — create/edit deliverables (MCP)"
   info "  /expedait-process   — design a project-type template (MCP)"
+  info "  /expedait-update-skills — check for and install skill updates"
 }
 
 # --- Pi (pi.dev) ---
@@ -102,7 +103,7 @@ install_pi() {
   local dir="$TARGET_DIR/.pi/skills"
   local src="$PLATFORMS_DIR/pi/skills"
 
-  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process; do
+  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process expedait-update-skills; do
     mkdir -p "$dir/$skill"
     cp "$src/$skill/SKILL.md" "$dir/$skill/SKILL.md"
   done
@@ -113,6 +114,7 @@ install_pi() {
   info "  expedait-review    — review code against specs"
   info "  expedait-author    — create/edit deliverables (MCP)"
   info "  expedait-process   — design a project-type template (MCP)"
+  info "  expedait-update-skills — check for and install skill updates"
   info "  Invoke with /skill:expedait-download (or let Pi auto-load by description)"
 }
 
@@ -160,6 +162,7 @@ install_opencode() {
   info "  /expedait-review    — review code against specs"
   info "  /expedait-author    — create/edit deliverables (MCP)"
   info "  /expedait-process   — design a project-type template (MCP)"
+  info "  /expedait-update-skills — check for and install skill updates"
 }
 
 # --- Codex ---
@@ -167,7 +170,7 @@ install_codex() {
   local dir="$TARGET_DIR/.codex/skills"
   local src="$PLATFORMS_DIR/codex/skills"
 
-  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process; do
+  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process expedait-update-skills; do
     mkdir -p "$dir/$skill"
     cp "$src/$skill/SKILL.md" "$dir/$skill/SKILL.md"
   done
@@ -178,6 +181,7 @@ install_codex() {
   info "  expedait-review    — review code against specs"
   info "  expedait-author    — create/edit deliverables (MCP)"
   info "  expedait-process   — design a project-type template (MCP)"
+  info "  expedait-update-skills — check for and install skill updates"
 }
 
 # --- Gemini CLI ---
@@ -198,6 +202,7 @@ install_gemini() {
   info "  /expedait-review    — review code against specs"
   info "  /expedait-author    — create/edit deliverables (MCP)"
   info "  /expedait-process   — design a project-type template (MCP)"
+  info "  /expedait-update-skills — check for and install skill updates"
 }
 
 # --- Windsurf ---
@@ -247,7 +252,7 @@ install_zed() {
   local dir="$TARGET_DIR/.agents/skills"
   local src="$PLATFORMS_DIR/zed/skills"
 
-  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process; do
+  for skill in expedait-download expedait-comment expedait-review expedait-author expedait-process expedait-update-skills; do
     mkdir -p "$dir/$skill"
     cp "$src/$skill/SKILL.md" "$dir/$skill/SKILL.md"
   done

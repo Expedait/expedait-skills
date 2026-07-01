@@ -21,6 +21,7 @@ SKILL_NAMES = [
     "expedait-download",
     "expedait-process",
     "expedait-review",
+    "expedait-update-skills",
 ]
 
 

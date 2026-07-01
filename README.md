@@ -67,11 +67,34 @@ Or just ask naturally: *"Download the specs for project 1 and review my code aga
 | [Process Designer](skills/expedait-process/SKILL.md) | Create or adapt a project-type process — phases, deliverable types, dependencies, owner roles |
 | [Post a Comment](skills/expedait-comment/SKILL.md) | Post an inline comment on a deliverable |
 | [Review](skills/expedait-review/SKILL.md) | Check objective/PRD/vision alignment against code, and read review findings — scopes to branch changes or full audit |
+| [Update Skills](skills/expedait-update-skills/SKILL.md) | Check whether the installed skills are current and update them if a newer release exists |
 
 > Every skill works with **either the CLI or the hosted MCP server**. The write surface —
 > authoring deliverables (`write_deliverable`), designing processes (`write_process`), and
 > managing roles (`write_role`) — landed in `expedait-cli` 0.4.0, so the **Author** and
 > **Process Designer** skills are CLI-first with an MCP-alternative section.
+
+## Staying up to date
+
+Skills are static files, so they don't refresh themselves — but every skill runs a
+**throttled version check** in its preamble (one network call per day at most, silent when
+you're current or offline). When a newer release exists it points you to the
+**Update Skills** skill:
+
+```
+/expedait-update-skills
+```
+
+That skill compares your installed version against the latest GitHub release and runs the
+right update path — re-running `install.sh` for a script install, or `/plugin` for a Claude
+Code plugin install. You can also check any time with the installer directly:
+
+```bash
+./install.sh --check     # compares .expedait-skills-version against the latest release
+```
+
+Disable the automatic checks with `export EXPEDAIT_SKILLS_UPDATE_CHECK=false` (or
+`touch ~/.expedait/no-update-check`).
 
 ## Agent Setup
 

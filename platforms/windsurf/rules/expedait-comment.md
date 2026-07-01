@@ -10,6 +10,29 @@ as `uvx --from expedait-cli expedait <command>` (an isolated uv environment, no 
 install). A **deliverable** is an Expedait spec document; comments anchor to a span of its
 content.
 
+## First: check for skill updates
+
+Run this once, before anything else. It's throttled (hits the network at most once a day),
+non-blocking, and silent when you're current or offline — never let it delay or abort the task.
+
+```bash
+{ _S="$HOME/.expedait"; [ "${EXPEDAIT_SKILLS_UPDATE_CHECK:-}" != "false" ] && [ ! -f "$_S/no-update-check" ] && {
+  mkdir -p "$_S"
+  if [ -z "$(find "$_S/update-check" -mmin -1440 2>/dev/null)" ]; then
+    touch "$_S/update-check"
+    _L=$(cat .expedait-skills-version 2>/dev/null || echo unknown)
+    _R=$(curl -fsSL --max-time 3 https://api.github.com/repos/Expedait/expedait-skills/releases/latest 2>/dev/null | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
+    printf '%s %s\n' "${_L:-unknown}" "${_R:-}" > "$_S/update-check.last"
+  fi
+  read -r _L _R < "$_S/update-check.last" 2>/dev/null || true
+  [ -n "${_R:-}" ] && [ "$_L" != "$_R" ] && [ "$(printf '%s\n%s\n' "$_L" "$_R" | sort -V | tail -1)" = "$_R" ] && echo "EXPEDAIT_UPDATE_AVAILABLE $_L $_R"
+}; } 2>/dev/null || true
+```
+
+If it prints `EXPEDAIT_UPDATE_AVAILABLE <local> <latest>`, mention it once — "Expedait skills
+v<latest> is available (you're on v<local>); run `/expedait-update-skills` to update" — then
+carry on with the task below. If it prints nothing, say nothing and proceed.
+
 ## Commands at a glance
 
 | Goal | Command (prefix each with `uvx --from expedait-cli expedait`) |
