@@ -9,7 +9,7 @@ jobs:
   test-skill-sources:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Verify skill source files exist and have frontmatter
         run: |
@@ -24,7 +24,7 @@ jobs:
   test-plugin-metadata:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Validate plugin.json
         run: |
@@ -47,8 +47,8 @@ jobs:
   test-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
 
       - name: Run build.py
         run: uv run build.py
@@ -72,7 +72,7 @@ jobs:
   test-cli-flags:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: "--help exits 0"
         run: bash install.sh --help
@@ -90,7 +90,7 @@ jobs:
       matrix:
         agent: [claude-code, cursor, opencode, codex, gemini, pi, windsurf, copilot, cline, zed, junie, amp]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run install for ${{ matrix.agent }}
         run: |
@@ -177,7 +177,7 @@ jobs:
   test-install-all:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run install --all
         run: |
@@ -205,7 +205,7 @@ jobs:
   test-install-autodetect:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run install with auto-detect (no --agent flag)
         run: |
