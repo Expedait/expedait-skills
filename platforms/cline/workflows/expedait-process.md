@@ -69,6 +69,7 @@ CLI commands are prefixed with `uvx --from expedait-cli expedait`. MCP tool name
 | **Build or modify a process atomically** | `expedait:write_process(ops=[…])` | `processes write --ops -` |
 | Create / change roles atomically | `expedait:write_role(ops=[…])` | `roles write --ops -` |
 | Create an owner role (ergonomic) | via `expedait:write_role` `create_role` op | `roles create --name "…" --instructions @file` |
+| **Instantiate a project from a process** | `expedait:write_project(ops=[…])` | `projects create --name "…" --process-id ID` |
 
 ## Look before you build
 
@@ -138,6 +139,28 @@ The `ops` array is the same JSON on both transports:
 
 **Verify** with `expedait:get_process(id)` / `processes get PROCESS_ID` — the write result also reports
 per-op `{status, …}` and the new ids (`affected_ids`) so you know the new process id to read back.
+
+## Instantiate a project from the process
+
+A process is a template — nothing gets authored until you create a **project** from it. That
+project is where deliverables live. Creating one is itself a write op (`write_project`), at
+parity across transports; pass the id of the process you just built (from `affected_ids` or
+`processes list`) as `project_type_id` / `--process-id`:
+
+- **MCP (preferred, available today):**
+  `expedait:write_project(ops=[{op: "create_project", name: "Q3 Launch", project_type_id: <process id>}])`
+- **CLI** (requires `expedait-cli` ≥ 0.4.3):
+  ```bash
+  uvx --from expedait-cli expedait projects create --name "Q3 Launch" --process-id PROCESS_ID
+  ```
+
+`write_project` also does `update_project` and a **guarded** `delete_project`: deleting a
+project cascades to every deliverable, version, file, and comment under it, so the op requires
+`"confirm": true` (and the CLI's `projects delete` requires `--confirm` — a bare call only
+previews and deletes nothing). Reshaping the process reshapes the template; deleting a project
+destroys one instance. Confirm with the user before either.
+
+Once the project exists, hand off to **`/expedait-author`** to draft its deliverables.
 
 ## `expedait:write_process` op reference
 
