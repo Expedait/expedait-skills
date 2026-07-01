@@ -71,17 +71,17 @@ CLI commands are prefixed with `uvx --from expedait-cli expedait`. MCP tool name
 
 | Goal | MCP tool | CLI command |
 |------|----------|-------------|
-| List existing processes | `list_processes()` | `processes list` |
-| Inspect a process (full tree) | `get_process(id)` | `processes get PROCESS_ID` |
-| List the workspace role pool | `list_roles()` | `roles list` |
-| **Build or modify a process atomically** | `write_process(ops=[…])` | `processes write --ops -` |
-| Create / change roles atomically | `write_role(ops=[…])` | `roles write --ops -` |
-| Create an owner role (ergonomic) | via `write_role` `create_role` op | `roles create --name "…" --instructions @file` |
+| List existing processes | `expedait:list_processes()` | `processes list` |
+| Inspect a process (full tree) | `expedait:get_process(id)` | `processes get PROCESS_ID` |
+| List the workspace role pool | `expedait:list_roles()` | `roles list` |
+| **Build or modify a process atomically** | `expedait:write_process(ops=[…])` | `processes write --ops -` |
+| Create / change roles atomically | `expedait:write_role(ops=[…])` | `roles write --ops -` |
+| Create an owner role (ergonomic) | via `expedait:write_role` `create_role` op | `roles create --name "…" --instructions @file` |
 
 ## Look before you build
 
 Reuse or extend rather than duplicate, and inspect any process you'll adapt —
-`list_processes()` / `get_process(id)` (MCP) or:
+`expedait:list_processes()` / `expedait:get_process(id)` (MCP) or:
 
 ```bash
 uvx --from expedait-cli expedait processes list                 # id, name, description, icon
@@ -102,7 +102,7 @@ uvx --from expedait-cli expedait roles delete ROLE_ID
 ```
 
 `instructions` is the role's LLM coaching persona (the system prompt for deliverables this role
-owns). For several role changes at once, use the atomic `write_role(ops=[…])` /
+owns). For several role changes at once, use the atomic `expedait:write_role(ops=[…])` /
 `roles write --ops` form (`create_role` / `update_role` / `delete_role`, chainable with
 `ref` / `@ref`).
 
@@ -128,7 +128,7 @@ The `ops` array is the same JSON on both transports:
 ]
 ```
 
-- **MCP (preferred):** `write_process(ops=[…])` — pass the array as a structured argument,
+- **MCP (preferred):** `expedait:write_process(ops=[…])` — pass the array as a structured argument,
   no shell escaping.
 - **CLI:** `processes write --ops -` and feed the array on stdin (or `@file.json`, or an inline
   string):
@@ -144,10 +144,10 @@ The `ops` array is the same JSON on both transports:
   JSON
   ```
 
-**Verify** with `get_process(id)` / `processes get PROCESS_ID` — the write result also reports
+**Verify** with `expedait:get_process(id)` / `processes get PROCESS_ID` — the write result also reports
 per-op `{status, …}` and the new ids (`affected_ids`) so you know the new process id to read back.
 
-## `write_process` op reference
+## `expedait:write_process` op reference
 
 - `{op: "create_process", ref?, name, description?, instructions?, icon?}`
 - `{op: "update_process", id, …}` / `{op: "duplicate_process", ref?, id}` /

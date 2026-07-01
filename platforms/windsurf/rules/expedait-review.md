@@ -54,9 +54,9 @@ CLI commands are prefixed with `uvx --from expedait-cli expedait`. MCP tool name
 
 | Goal | MCP tool | CLI command |
 |------|----------|-------------|
-| **Read open review findings on a deliverable** | `list_review_issues(deliverable_id, state?)` | `review issues DELIVERABLE_ID --state open` |
-| Mute a finding that isn't actionable | `mute_review_issue(issue_id, muted?, muted_note?)` | `review mute ISSUE_ID --note "…"` (or `--unmute`) |
-| An objective's descendant tree | `get_objective_overview(id)` | `objectives overview DELIVERABLE_ID` |
+| **Read open review findings on a deliverable** | `expedait:list_review_issues(deliverable_id, state?)` | `review issues DELIVERABLE_ID --state open` |
+| Mute a finding that isn't actionable | `expedait:mute_review_issue(issue_id, muted?, muted_note?)` | `review mute ISSUE_ID --note "…"` (or `--unmute`) |
+| An objective's descendant tree | `expedait:get_objective_overview(id)` | `objectives overview DELIVERABLE_ID` |
 | Pull fresh deliverables to compare against | *(CLI only)* | `projects download PROJECT --output-dir .expedait/context` |
 
 `state` is `open | muted | all` (default `all`). Each issue carries severity, description, the
@@ -72,8 +72,8 @@ uvx --from expedait-cli expedait review issues DELIVERABLE_ID --state open
 uvx --from expedait-cli expedait review mute ISSUE_ID --note "tracked in JIRA-123"   # --unmute to restore
 ```
 
-Over MCP: `list_review_issues(deliverable_id, "open")` and
-`mute_review_issue(issue_id, muted=true, muted_note="tracked in JIRA-123")`.
+Over MCP: `expedait:list_review_issues(deliverable_id, "open")` and
+`expedait:mute_review_issue(issue_id, muted=true, muted_note="tracked in JIRA-123")`.
 
 ## Manual path: scoped local report (no comments posted)
 
@@ -108,13 +108,13 @@ uvx --from expedait-cli expedait projects download PROJECT --output-dir .expedai
 ```
 
 Over MCP (no download command), read the deliverables you need with
-`get_deliverable(id, include=["content"])` and `get_deliverable_context(id)`.
+`expedait:get_deliverable(id, include=["content"])` and `expedait:get_deliverable_context(id)`.
 
 ### Step 3: Identify high-signal deliverables
 
 Focus on the deliverables that define what the product should do and why:
 
-1. **Objectives** — top-level goals and their descendant tree. Read these first to understand intent (`get_objective_overview(id)` / `objectives overview DELIVERABLE_ID`).
+1. **Objectives** — top-level goals and their descendant tree. Read these first to understand intent (`expedait:get_objective_overview(id)` / `objectives overview DELIVERABLE_ID`).
 2. **Product Vision** — strategic intent. Look for `*vision*`, `*product-vision*` in `.expedait/context/`.
 3. **PRD** — detailed requirements. Look for `*prd*`, `*product-requirements*`.
 
@@ -122,7 +122,7 @@ Focus on the deliverables that define what the product should do and why:
 uvx --from expedait-cli expedait deliverables list --project-id PROJECT_ID --format json
 ```
 
-(Over MCP: `list_deliverables(project_id)`.) Keep track of deliverable IDs and titles — the
+(Over MCP: `expedait:list_deliverables(project_id)`.) Keep track of deliverable IDs and titles — the
 report should reference them.
 
 ### Step 4: Compare deliverables against code

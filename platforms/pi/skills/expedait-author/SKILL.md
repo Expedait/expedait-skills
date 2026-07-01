@@ -57,11 +57,11 @@ CLI commands are prefixed with `uvx --from expedait-cli expedait`. MCP tool name
 
 | Goal | MCP tool | CLI command |
 |------|----------|-------------|
-| Read a type's template + requirements before writing | `get_deliverable(id, include=["meta","template","requirements","writer_instructions"])` | `deliverables get ID --include meta,template,requirements,writer_instructions` |
-| Assembled upstream context this one depends on | `get_deliverable_context(id)` | `context get ID` |
+| Read a type's template + requirements before writing | `expedait:get_deliverable(id, include=["meta","template","requirements","writer_instructions"])` | `deliverables get ID --include meta,template,requirements,writer_instructions` |
+| Assembled upstream context this one depends on | `expedait:get_deliverable_context(id)` | `context get ID` |
 | Find the type id for a new deliverable | *(CLI only)* | `deliverables types` |
-| **Create / edit / rename / snapshot / set-state (atomic)** | `write_deliverable(ops=[…])` | `deliverables write --ops -` |
-| Create a deliverable (ergonomic) | via `write_deliverable` `create` op | `deliverables create --project ID --type TYPE_ID --title "…" --content @file` |
+| **Create / edit / rename / snapshot / set-state (atomic)** | `expedait:write_deliverable(ops=[…])` | `deliverables write --ops -` |
+| Create a deliverable (ergonomic) | via `expedait:write_deliverable` `create` op | `deliverables create --project ID --type TYPE_ID --title "…" --content @file` |
 | Edit content (autosave, no version bump) | via `edit` op | `deliverables edit ID --content @file` |
 | Rename | via `rename` op | `deliverables rename ID --title "…"` |
 | Snapshot a restorable version | via `save_version` op | `deliverables save-version ID --reason "…"` |
@@ -73,8 +73,8 @@ A good deliverable follows its type's template and satisfies its requirements. P
 context first so what you write actually fits — the template structure, the bar it's scored
 against, how to write it, and the upstream deliverables this one depends on:
 
-- **MCP:** `get_deliverable(id, include=["meta","template","requirements","writer_instructions"])`,
-  then `get_deliverable_context(id)`. For an existing deliverable, `get_deliverable(id, include=["content"])`.
+- **MCP:** `expedait:get_deliverable(id, include=["meta","template","requirements","writer_instructions"])`,
+  then `expedait:get_deliverable_context(id)`. For an existing deliverable, `expedait:get_deliverable(id, include=["content"])`.
 - **CLI:**
   ```bash
   uvx --from expedait-cli expedait deliverables get DELIVERABLE_ID \
@@ -88,7 +88,7 @@ Read the upstream dependencies before drafting so you stay consistent with them.
 ## Finding the ids you need
 
 `create` needs a project id and a deliverable **type** id — look them up, don't guess.
-On MCP: `list_projects()`, then `list_deliverables(project_id)` and `get_objective_overview(id)`
+On MCP: `expedait:list_projects()`, then `expedait:list_deliverables(project_id)` and `expedait:get_objective_overview(id)`
 to place a child under an objective. On the CLI:
 
 ```bash
@@ -118,7 +118,7 @@ The `ops` array is the same JSON on both transports:
 ]
 ```
 
-- **MCP (preferred):** `write_deliverable(ops=[…])` — pass the array as a structured argument,
+- **MCP (preferred):** `expedait:write_deliverable(ops=[…])` — pass the array as a structured argument,
   no shell escaping.
 - **CLI:** `deliverables write --ops -` and feed the array on stdin (or `@file.json`, or an
   inline string):
@@ -152,7 +152,7 @@ uvx --from expedait-cli expedait deliverables save-version DELIVERABLE_ID --reas
 uvx --from expedait-cli expedait deliverables set-state DELIVERABLE_ID --state "Review" --reason "ready for review"
 ```
 
-Over MCP, do the same single steps as a one-op `write_deliverable(ops=[{...}])` call.
+Over MCP, do the same single steps as a one-op `expedait:write_deliverable(ops=[{...}])` call.
 
 ## Tips
 
@@ -161,7 +161,7 @@ Over MCP, do the same single steps as a one-op `write_deliverable(ops=[{...}])` 
 - **Locks & state legality.** The backend re-checks lock status and whether a state
   transition is legal; a rejected op surfaces as an error — re-read the deliverable and retry.
   Don't fight another editor's lock; surface it to the user.
-- **Verify** after writing: read back `content` and `score` (`get_deliverable(id, include=["content","score"])`
+- **Verify** after writing: read back `content` and `score` (`expedait:get_deliverable(id, include=["content","score"])`
   or `deliverables get ID --include content,score`) — `score` shows how the new content
   measures against the type's requirements once scoring runs.
 - If the `expedait:*` tools aren't in your tool list, the connector isn't attached — use the

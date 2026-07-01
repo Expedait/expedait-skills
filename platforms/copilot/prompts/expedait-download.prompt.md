@@ -58,16 +58,16 @@ where the server is `expedait`.
 
 | Goal | MCP tool | CLI command |
 |------|----------|-------------|
-| **List your projects** | `list_projects()` | `projects list` |
-| Deliverables grouped by phase | `get_project_workspace(project_id)` | `projects workspace PROJECT` |
+| **List your projects** | `expedait:list_projects()` | `projects list` |
+| Deliverables grouped by phase | `expedait:get_project_workspace(project_id)` | `projects workspace PROJECT` |
 | Download a project's whole spec set to disk | *(CLI only)* | `projects download PROJECT --output-dir .expedait/context` |
-| List a project's deliverables | `list_deliverables(project_id)` | `deliverables list --project-id PROJECT_ID` |
-| Read one deliverable (section-aware) | `get_deliverable(id, include=[…])` | `deliverables get DELIVERABLE_ID [--include …]` |
+| List a project's deliverables | `expedait:list_deliverables(project_id)` | `deliverables list --project-id PROJECT_ID` |
+| Read one deliverable (section-aware) | `expedait:get_deliverable(id, include=[…])` | `deliverables get DELIVERABLE_ID [--include …]` |
 | Richest single read (content + comments + deps + lock) | *(CLI only)* | `deliverables inspect DELIVERABLE_ID` |
-| Assembled LLM context for a deliverable | `get_deliverable_context(id)` | `context get DELIVERABLE_ID` |
-| An objective's descendant tree | `get_objective_overview(id)` | `objectives overview DELIVERABLE_ID` |
+| Assembled LLM context for a deliverable | `expedait:get_deliverable_context(id)` | `context get DELIVERABLE_ID` |
+| An objective's descendant tree | `expedait:get_objective_overview(id)` | `objectives overview DELIVERABLE_ID` |
 
-`get_deliverable` / `deliverables get` default to cheap `meta`-only; opt into heavier sections
+`expedait:get_deliverable` / `deliverables get` default to cheap `meta`-only; opt into heavier sections
 only when you need them: `content`, `score`, `template`, `requirements`, `writer_instructions`,
 `dependencies`, `external_context`, `comments`, `versions`. MCP responses are capped at 32 KB
 with truncation reported via `truncated` / `truncated_fields`. CLI output auto-detects: text in
@@ -82,8 +82,8 @@ a terminal, JSON when piped (`--format json` to force it).
 
 ## Typical flow
 
-1. **Find the project.** `list_projects()` / `projects list` (skip if a project id/name was given via the user's input). Done when you have the id or name.
-2. **Pull the specs.** On the CLI, `projects download PROJECT --output-dir .expedait/context` extracts one markdown file per deliverable to disk. Over MCP (no download command), read the deliverables you need with `get_deliverable(id, include=["content"])`. Done when you have the content.
+1. **Find the project.** `expedait:list_projects()` / `projects list` (skip if a project id/name was given via the user's input). Done when you have the id or name.
+2. **Pull the specs.** On the CLI, `projects download PROJECT --output-dir .expedait/context` extracts one markdown file per deliverable to disk. Over MCP (no download command), read the deliverables you need with `expedait:get_deliverable(id, include=["content"])`. Done when you have the content.
 3. **Read before implementing.** Read the objectives and PRD first so the work matches the requirements.
 
 ## Once you understand a project
@@ -94,6 +94,6 @@ template.
 
 ## Tips
 
-- `deliverables inspect` and `context get` / `get_deliverable_context` are the richest single-call reads — they include dependency relationships, so you understand how deliverables reference each other.
+- `deliverables inspect` and `context get` / `expedait:get_deliverable_context` are the richest single-call reads — they include dependency relationships, so you understand how deliverables reference each other.
 - CLI settings resolution order: CLI flag → environment variable (`EXPEDAIT_TOKEN`, `EXPEDAIT_API_URL`, `EXPEDAIT_TENANT_ID`) → `~/.expedait/config.json`.
 - If the `expedait:*` tools aren't in your tool list, the connector isn't attached — use the CLI path. If neither is available, authenticate the CLI with `auth login` first.

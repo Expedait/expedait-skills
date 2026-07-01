@@ -56,16 +56,16 @@ CLI commands are prefixed with `uvx --from expedait-cli expedait`. MCP tool name
 
 | Goal | MCP tool | CLI command |
 |------|----------|-------------|
-| Read the deliverable to quote an exact span | `get_deliverable(id, include=["content"])` | `deliverables get DELIVERABLE_ID` |
-| List existing comments (avoid dupes) | `list_comments(deliverable_id)` | `comments list DELIVERABLE_ID` |
-| **Post an anchored comment** | `create_comment(deliverable_id, text, selected_text, start_offset, end_offset, …)` | `comments create DELIVERABLE_ID --text "…" --selected-text "…"` |
-| Resolve a comment (idempotent) | `resolve_comment(deliverable_id, comment_id)` | `comments resolve DELIVERABLE_ID COMMENT_ID` |
+| Read the deliverable to quote an exact span | `expedait:get_deliverable(id, include=["content"])` | `deliverables get DELIVERABLE_ID` |
+| List existing comments (avoid dupes) | `expedait:list_comments(deliverable_id)` | `comments list DELIVERABLE_ID` |
+| **Post an anchored comment** | `expedait:create_comment(deliverable_id, text, selected_text, start_offset, end_offset, …)` | `comments create DELIVERABLE_ID --text "…" --selected-text "…"` |
+| Resolve a comment (idempotent) | `expedait:resolve_comment(deliverable_id, comment_id)` | `comments resolve DELIVERABLE_ID COMMENT_ID` |
 | Delete a comment | *(CLI only)* | `comments delete DELIVERABLE_ID COMMENT_ID` |
 
 ## Steps
 
 1. **Read the deliverable content** so you can quote the exact text to anchor to —
-   `get_deliverable(id, include=["content"])` (MCP) or `deliverables get DELIVERABLE_ID` (CLI).
+   `expedait:get_deliverable(id, include=["content"])` (MCP) or `deliverables get DELIVERABLE_ID` (CLI).
 
 2. **Create the comment**, passing the exact span.
 
@@ -77,10 +77,10 @@ CLI commands are prefixed with `uvx --from expedait-cli expedait`. MCP tool name
      --source-deliverable-id SOURCE_DELIVERABLE_ID
    ```
 
-   **MCP** — `create_comment(deliverable_id, text, selected_text, start_offset, end_offset,
+   **MCP** — `expedait:create_comment(deliverable_id, text, selected_text, start_offset, end_offset,
    parent_comment_id?, client_request_id?)`. See "Anchoring over MCP" for how to compute offsets.
 
-3. **Verify:** `list_comments(deliverable_id)` (MCP) or `comments list DELIVERABLE_ID --format json` (CLI).
+3. **Verify:** `expedait:list_comments(deliverable_id)` (MCP) or `comments list DELIVERABLE_ID --format json` (CLI).
 
 ## Options / fields
 
@@ -93,8 +93,8 @@ CLI commands are prefixed with `uvx --from expedait-cli expedait`. MCP tool name
 
 ## Anchoring over MCP
 
-Unlike the CLI, `create_comment` takes explicit `start_offset` / `end_offset`: 0-based character
-offsets into the `content` string returned by `get_deliverable(id, include=["content"])`. Find
+Unlike the CLI, `expedait:create_comment` takes explicit `start_offset` / `end_offset`: 0-based character
+offsets into the `content` string returned by `expedait:get_deliverable(id, include=["content"])`. Find
 `selected_text` in that string — `start_offset` is its index, `end_offset` is
 `start_offset + len(selected_text)`. The CLI computes these for you from `--selected-text`.
 
@@ -106,7 +106,7 @@ uvx --from expedait-cli expedait comments resolve DELIVERABLE_ID COMMENT_ID   # 
 uvx --from expedait-cli expedait comments delete DELIVERABLE_ID COMMENT_ID    # delete
 ```
 
-Over MCP, `resolve_comment(deliverable_id, comment_id)` is idempotent. (Deleting a comment is
+Over MCP, `expedait:resolve_comment(deliverable_id, comment_id)` is idempotent. (Deleting a comment is
 CLI-only today.)
 
 ## Tips
