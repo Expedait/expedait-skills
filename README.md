@@ -2,7 +2,9 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Step-by-step guides for AI coding agents that use [Expedait](https://expedait.com) to manage project specifications.
+Step-by-step guides for AI coding agents that use [Expedait](https://expedait.org) to manage project specifications.
+
+📖 **User docs:** [app.expedait.org/docs/skills](https://app.expedait.org/docs/skills)
 
 Expedait's spec model has four primitives: **objectives** (top-level goals that nest child deliverables), **deliverables** (the individual spec documents — formerly "pages"), **context** (the assembled LLM context for a deliverable), and **review** (scoring findings on a deliverable).
 
