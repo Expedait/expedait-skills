@@ -66,9 +66,10 @@ where the server is `expedait`.
 | Assembled LLM context for a deliverable | `expedait:get_deliverable_context(id)` | `context get DELIVERABLE_ID` |
 | An objective's descendant tree | `expedait:get_objective_overview(id)` | `objectives overview DELIVERABLE_ID` |
 
-`expedait:get_deliverable` / `deliverables get` default to cheap `meta`-only; opt into heavier sections
-only when you need them: `content`, `score`, `template`, `requirements`, `writer_instructions`,
-`dependencies`, `external_context`, `comments`, `versions`. MCP responses are capped at 32 KB
+`expedait:get_deliverable` defaults to cheap `meta`-only; the CLI's `deliverables get` defaults to
+`content`. Either way, pass only the sections you need: `meta`, `content`, `score`, `template`,
+`requirements`, `writer_instructions`, `dependencies`, `external_context`, `comments`, `versions`
+(MCP `include=[…]`, CLI `--include`). MCP responses are capped at 32 KB
 with truncation reported via `truncated` / `truncated_fields`. CLI output auto-detects: text in
 a terminal, JSON when piped (`--format json` to force it).
 
