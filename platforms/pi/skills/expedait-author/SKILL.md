@@ -10,7 +10,8 @@ This skill drives the `expedait` CLI over Bash — no MCP tool required. Run eve
 `uvx --from expedait-cli expedait <command>` (an isolated uv environment, no global install);
 authenticate once with `uvx --from expedait-cli expedait auth login`. A **deliverable** is an
 Expedait spec document; the CLI can create and edit its content, not just read it. Pass the
-project per command (by id or name) — there is no separate init step.
+project per command (by id or name), or run `uvx --from expedait-cli expedait init` once to
+write `.expedait/settings.json` so `--project` defaults for this directory.
 
 ## Commands at a glance
 
