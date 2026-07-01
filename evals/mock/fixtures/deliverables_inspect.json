@@ -1,0 +1,15 @@
+{
+  "id": 5,
+  "title": "Product Vision",
+  "content": "# Product Vision\n\n## Authentication\n\nUsers authenticate.\n",
+  "comments": [],
+  "dependencies": [
+    {
+      "id": 2,
+      "title": "Objective: Launch v1"
+    }
+  ],
+  "lock": {
+    "locked": false
+  }
+}

@@ -387,6 +387,23 @@ platforms/                     # generated — do not edit directly
 
 Claude Code uses `skills/` directly (native format). Other platforms use files from `platforms/`.
 
+## Testing
+
+A local eval battery lives in [`evals/`](evals/README.md). It grades **which `expedait`
+commands a skill leads the agent to run** against a hermetic mock CLI — no auth, no
+network, no live backend. Two tiers:
+
+```bash
+python3 evals/lint.py                    # static frontmatter/body checks
+uv run --with pytest pytest evals/       # agent-free unit tests
+python3 evals/runner.py                  # full battery (needs the `claude` CLI)
+python3 evals/runner.py --dry-run        # validate eval schema + wiring, no agent
+```
+
+Tier 1 (lint + unit tests) runs on every PR in CI; the agent battery and latency probe are
+local dev tools you run yourself.
+See [`evals/README.md`](evals/README.md) for the eval schema and how to add cases.
+
 ## Contributing
 
 To add or modify a skill:
@@ -395,6 +412,9 @@ To add or modify a skill:
 2. Run `uv run build.py` to regenerate platform files
 3. Add the skill to the table in this README
 4. Submit a pull request (CI checks that `platforms/` is in sync)
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow and authoring guidelines, and
+[SECURITY.md](SECURITY.md) to report a vulnerability.
 
 ## License
 

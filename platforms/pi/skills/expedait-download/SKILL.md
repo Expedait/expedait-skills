@@ -1,85 +1,68 @@
 ---
 name: expedait-download
-description: "Download the spec context for an Expedait project — objectives, deliverables, and their LLM context. Use this skill whenever the user mentions Expedait specs, project requirements, downloading context, or needs to understand what a project is about before implementing or reviewing code. Also trigger when the user asks to 'get the specs', 'fetch the deliverables', 'pull the project context', or 'download the objectives'."
+description: "Read and download Expedait spec context — list your projects, then pull a project's objectives, deliverables, and their LLM context to disk. Use this skill whenever the user mentions Expedait specs, wants to see which projects exist, needs project requirements, or wants to understand what a project is about before implementing or reviewing code. Also trigger when the user asks to 'list my Expedait projects', 'what projects do I have', 'get the specs', 'fetch the deliverables', 'pull the project context', 'download the objectives', or 'show the project workspace'."
 allowed-tools: Bash, Read, Glob, Grep
 ---
 
-# Download Project Context from Expedait
+# Read & Download Expedait Spec Context
 
-Run the CLI via `uvx --from expedait-cli expedait` — it runs in an isolated environment via uv, so no global install or virtual environment is needed.
+Ground the agent in what the product should actually do. Instead of guessing requirements,
+pull a project's **specs** — objectives, deliverables, and their assembled context — into
+the working directory, then implement or review against them. That is the Expedait
+aha-moment: the real requirements in the agent's context, one command away.
 
-Expedait's spec model is organized around four primitives:
+Every command runs through the CLI: `uvx --from expedait-cli expedait <command>` — an
+isolated uv environment, so no global install is needed. Authenticate once with
+`uvx --from expedait-cli expedait auth login` (cached in `~/.expedait/config.json`); check
+with `auth status`.
+
+## Commands at a glance
+
+Run any of these directly — this skill drives the `expedait` CLI over Bash (no MCP tool
+required). `PROJECT` is a numeric id, a name/substring, or omitted for an interactive pick.
+
+| Goal | Command (prefix each with `uvx --from expedait-cli expedait`) |
+|------|--------------------------------------------------------------|
+| **List your projects** | `projects list` |
+| Download a project's whole spec set to disk | `projects download PROJECT --output-dir .expedait/context` |
+| See deliverables grouped by phase | `projects workspace PROJECT` |
+| List a project's deliverables | `deliverables list --project-id PROJECT_ID` |
+| Read one deliverable | `deliverables get DELIVERABLE_ID [--include content,score,…]` |
+| Richest single read (content + comments + deps + lock) | `deliverables inspect DELIVERABLE_ID` |
+| Assembled LLM context for a deliverable | `context get DELIVERABLE_ID` |
+| An objective's descendant tree | `objectives overview DELIVERABLE_ID` |
+
+Output auto-detects: text in a terminal, JSON when piped (`--format json` to force).
+
+## The spec model
 
 - **Objectives** — top-level goals. An objective is itself a deliverable that nests child deliverables under it (`parent_deliverable_id`).
-- **Deliverables** — the individual spec documents (product vision, PRD, BRD, persona, architecture, …). This is what used to be called a "page".
+- **Deliverables** — the individual spec documents (product vision, PRD, BRD, persona, architecture, …).
 - **Context** — the assembled LLM context for a deliverable: its dependency deliverables, linked external sources (Notion, GitHub, …), and uploaded context files.
 - **Review** — scoring findings raised against a deliverable. See `/expedait-review`.
 
-## Steps
+## Typical flow
 
-1. Authenticate (first time only — credentials are cached in `~/.expedait/config.json`):
-   ```bash
-   uvx --from expedait-cli expedait auth login
-   uvx --from expedait-cli expedait auth status   # confirm user, tenant, workspace
-   ```
+1. **Find the project.** `projects list` (skip if a project id/name was given via $ARGUMENTS). Done when you have the id or name.
+2. **Pull the specs.** `projects download PROJECT --output-dir .expedait/context` — extracts one markdown file per deliverable. Done when the files exist on disk.
+3. **Read before implementing.** Read the downloaded deliverables — objectives and PRD first — so the work matches the requirements.
 
-2. If no project ID/name was given via $ARGUMENTS, list available projects:
-   ```bash
-   uvx --from expedait-cli expedait projects list
-   ```
-   `PROJECT` can be a numeric ID, a name (or substring), or omitted for interactive selection.
-
-3. Download all of a project's deliverables (markdown + images) to disk:
-   ```bash
-   uvx --from expedait-cli expedait projects download PROJECT --output-dir .expedait/context
-   ```
-   Extracts a ZIP of one markdown file per deliverable. For the structure-aware view —
-   deliverables grouped by phase — use the workspace command (mirrors the MCP
-   `get_project_workspace`):
-   ```bash
-   uvx --from expedait-cli expedait projects workspace PROJECT
-   ```
-
-4. Read the downloaded deliverables to understand the project before implementing.
-
-## Drilling into a single deliverable
-
-```bash
-# List the deliverables in a project
-uvx --from expedait-cli expedait deliverables list --project-id PROJECT_ID
-
-# Print one deliverable's markdown content
-uvx --from expedait-cli expedait deliverables get DELIVERABLE_ID
-
-# Pull specific sections (content, score, template, requirements, dependencies, …)
-uvx --from expedait-cli expedait deliverables get DELIVERABLE_ID --include content,score,dependencies
-
-# Full context: content + comments + dependencies + lock status
-uvx --from expedait-cli expedait deliverables inspect DELIVERABLE_ID
-
-# Just the assembled LLM context (dependency deliverables, external sources, files)
-uvx --from expedait-cli expedait context get DELIVERABLE_ID
-```
-
-## Working with objectives
-
-```bash
-# An objective's full descendant tree (child deliverable ids, titles, states, scores)
-uvx --from expedait-cli expedait objectives overview DELIVERABLE_ID
-```
+For `deliverables get`, opt into heavier sections as needed:
+`--include content,score,template,requirements,writer_instructions,dependencies,external_context,comments,versions`.
 
 ## Via the MCP server (no CLI)
 
 If you're connected to the hosted Expedait MCP server (`https://mcp.expedait.org`), the same
-reads map to these tools (all read-only, `mcp:deliverables:read`):
+reads map to these tools (fully-qualified as `ServerName:tool`, where the server is `expedait`;
+all read-only, `mcp:deliverables:read`):
 
 ```
-list_projects()                              get_project_workspace(project_id)   # phase grouping
-list_deliverables(project_id)                get_deliverable(id, include=[...])  # section-aware
-get_objective_overview(id)                   get_deliverable_context(id)         # assembled LLM context
+expedait:list_projects()                     expedait:get_project_workspace(project_id)   # phase grouping
+expedait:list_deliverables(project_id)       expedait:get_deliverable(id, include=[...])  # section-aware
+expedait:get_objective_overview(id)          expedait:get_deliverable_context(id)         # assembled LLM context
 ```
 
-`get_deliverable` defaults to cheap `meta`-only; opt into heavier sections (`content`,
+`expedait:get_deliverable` defaults to cheap `meta`-only; opt into heavier sections (`content`,
 `template`, `requirements`, `writer_instructions`, `dependencies`, `external_context`,
 `score`, `comments`, `versions`) only when you need them. Responses are capped at 32 KB with
 truncation reported via `truncated` / `truncated_fields`.

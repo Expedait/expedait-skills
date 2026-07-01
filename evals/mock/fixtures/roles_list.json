@@ -1,0 +1,12 @@
+{
+  "roles": [
+    {
+      "id": 1,
+      "name": "Product Manager"
+    },
+    {
+      "id": 2,
+      "name": "Engineer"
+    }
+  ]
+}

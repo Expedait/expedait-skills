@@ -5,8 +5,20 @@ description: "Create or adapt an Expedait process — the project-type template 
 
 # Create or Adapt an Expedait Process
 
-Run the CLI via `uvx --from expedait-cli expedait` — no global install needed. Authenticate
-once with `uvx --from expedait-cli expedait auth login`.
+This skill drives the `expedait` CLI over Bash — no MCP tool required. Run every command as
+`uvx --from expedait-cli expedait <command>` (an isolated uv environment, no global install);
+authenticate once with `uvx --from expedait-cli expedait auth login`.
+
+## Commands at a glance
+
+| Goal | Command (prefix each with `uvx --from expedait-cli expedait`) |
+|------|--------------------------------------------------------------|
+| List existing processes | `processes list` |
+| Inspect a process (full tree) | `processes get PROCESS_ID` |
+| List the workspace role pool | `roles list` |
+| Create an owner role | `roles create --name "…" --instructions @file` |
+| **Build or modify a process atomically** | `processes write --ops -` |
+| Change several roles atomically | `roles write --ops -` |
 
 A **process** is the template layer of Expedait — the project type that every project is
 instantiated from. Editing a process reshapes **every** project built from it. Its shape:
@@ -50,7 +62,7 @@ role owns). For several role changes at once, use the atomic `roles write --ops`
 
 ## Build the process in one `processes write` call
 
-Process building is one atomic ops array (mirrors the MCP `write_process` tool). Ops execute
+Process building is one atomic ops array (mirrors the MCP `expedait:write_process` tool). Ops execute
 in order and chain across entity kinds via **named refs**: a create op carries `ref: "x"`,
 later ops reference `"@x"`. You don't compute canvas coordinates — omit `col_position` / rows
 and cards auto-place.
@@ -113,8 +125,9 @@ ids (`affected_ids`) so you know the new process id to read back.
 ## Via the MCP server (alternative to the CLI)
 
 Connected to the hosted Expedait MCP server (`https://mcp.expedait.org`) instead of the CLI?
-The same surface maps to `list_processes` / `get_process` / `list_roles`, `write_process(ops=[...])`,
-and `write_role(ops=[...])`, with the identical op set and named refs. Requires the
+The same surface maps to `expedait:list_processes` / `expedait:get_process` / `expedait:list_roles`,
+`expedait:write_process(ops=[...])`, and `expedait:write_role(ops=[...])` (tool names are
+`ServerName:tool`, where the server is `expedait`), with the identical op set and named refs. Requires the
 `mcp:process:write` scope (kept separate from `mcp:deliverables:write` on purpose, since
 reshaping a template touches every project of that type). If those tools aren't in your tool
 list, the connector isn't attached — use the CLI above instead.

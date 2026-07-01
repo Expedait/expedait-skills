@@ -1,0 +1,16 @@
+{
+  "deliverables": [
+    {
+      "id": 5,
+      "title": "Product Vision",
+      "state": "In Progress",
+      "deliverable_type_id": 3
+    },
+    {
+      "id": 10,
+      "title": "Auth PRD",
+      "state": "Review",
+      "deliverable_type_id": 12
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # Only the GitHub Actions ecosystem is worth tracking here: the workflows pin a few
+  # actions (actions/checkout, astral-sh/setup-uv) that get security and maintenance
+  # updates. There are no Python or npm runtime dependencies to manage — build.py and the
+  # eval battery are stdlib-only, and pytest is pulled ephemerally via `uv run --with`.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # One grouped PR per week instead of one per action, to keep noise low.
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci

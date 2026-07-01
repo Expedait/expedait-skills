@@ -1,0 +1,9 @@
+{
+  "id": 5,
+  "title": "Product Vision",
+  "state": "In Progress",
+  "content": "# Product Vision\n\n## Authentication\n\nUsers authenticate against the service.\n",
+  "score": {
+    "value": 0.7
+  }
+}

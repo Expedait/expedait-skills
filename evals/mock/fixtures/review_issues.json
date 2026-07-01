@@ -1,0 +1,13 @@
+{
+  "issues": [
+    {
+      "id": 55,
+      "severity": "high",
+      "description": "Auth section omits PKCE",
+      "criteria": "Security",
+      "start_offset": 10,
+      "end_offset": 28,
+      "state": "open"
+    }
+  ]
+}

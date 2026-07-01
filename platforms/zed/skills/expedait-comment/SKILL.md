@@ -1,14 +1,24 @@
 ---
 name: expedait-comment
-description: "Post an inline comment on an Expedait deliverable. Use this skill whenever the user wants to annotate a spec, flag a divergence between code and a deliverable, leave feedback on a requirement, or report an issue in an Expedait deliverable. Also trigger when the user says 'comment on the deliverable', 'flag this in Expedait', or 'leave a note on the requirement'."
+description: "Post, list, resolve, or delete inline comments on an Expedait deliverable. Use this skill whenever the user wants to annotate a spec, flag a divergence between code and a deliverable, leave feedback on a requirement, report an issue, read existing comments, or resolve a comment on an Expedait deliverable. Also trigger when the user says 'comment on the deliverable', 'flag this in Expedait', 'leave a note on the requirement', 'list the comments', 'show comments on the deliverable', or 'resolve the comment'."
 ---
 
 # Post a Comment on an Expedait Deliverable
 
-Run the CLI via `uvx --from expedait-cli expedait` — it runs in an isolated environment via uv, so no global install or virtual environment is needed.
+This skill drives the `expedait` CLI over Bash — no MCP tool required. Run every command
+as `uvx --from expedait-cli expedait <command>` (an isolated uv environment, no global
+install). A **deliverable** is an Expedait spec document; comments anchor to a span of its
+content.
 
-A **deliverable** is an Expedait spec document (formerly a "page"). Comments anchor to a
-span of its content.
+## Commands at a glance
+
+| Goal | Command (prefix each with `uvx --from expedait-cli expedait`) |
+|------|--------------------------------------------------------------|
+| Read the deliverable to quote an exact span | `deliverables get DELIVERABLE_ID` |
+| **Post an anchored comment** | `comments create DELIVERABLE_ID --text "…" --selected-text "…"` |
+| List existing comments | `comments list DELIVERABLE_ID` |
+| Resolve a comment | `comments resolve DELIVERABLE_ID COMMENT_ID` |
+| Delete a comment | `comments delete DELIVERABLE_ID COMMENT_ID` |
 
 ## Steps
 
@@ -18,7 +28,7 @@ span of its content.
    ```
 
 2. Create the comment. Pass the exact span via `--selected-text`; the CLI resolves the
-   anchor offsets for you, so you no longer compute them by hand:
+   anchor offsets for you, so you don't compute them by hand:
    ```bash
    uvx --from expedait-cli expedait comments create DELIVERABLE_ID \
      --text "Your comment" \
@@ -52,19 +62,20 @@ uvx --from expedait-cli expedait comments delete DELIVERABLE_ID COMMENT_ID
 ## Via the MCP server (no CLI)
 
 If you're connected to the hosted Expedait MCP server (`https://mcp.expedait.org`) instead
-of the CLI, the same workflow maps to these tools (requires the `mcp:comments:write` scope):
+of the CLI, the same workflow maps to these tools (fully-qualified as `ServerName:tool`, where
+the server is `expedait`; requires the `mcp:comments:write` scope):
 
 ```
-get_deliverable(id, include=["content"])          # quote exact span to anchor to
-list_comments(deliverable_id)                      # see existing comments, avoid dupes
-create_comment(deliverable_id, text, selected_text, start_offset, end_offset,
+expedait:get_deliverable(id, include=["content"])   # quote exact span to anchor to
+expedait:list_comments(deliverable_id)              # see existing comments, avoid dupes
+expedait:create_comment(deliverable_id, text, selected_text, start_offset, end_offset,
                parent_comment_id?, client_request_id?)
-resolve_comment(deliverable_id, comment_id)        # idempotent
+expedait:resolve_comment(deliverable_id, comment_id)   # idempotent
 ```
 
-Unlike the CLI, `create_comment` takes explicit `start_offset` / `end_offset`: they are
+Unlike the CLI, `expedait:create_comment` takes explicit `start_offset` / `end_offset`: they are
 0-based character offsets into the `content` string returned by
-`get_deliverable(id, include=["content"])`. Find `selected_text` in that string —
+`expedait:get_deliverable(id, include=["content"])`. Find `selected_text` in that string —
 `start_offset` is its index, `end_offset` is `start_offset + len(selected_text)`. Pass
 `client_request_id` to make the create idempotent if you retry. If these tools aren't in your
 tool list, the connector isn't attached — use the CLI path above instead.

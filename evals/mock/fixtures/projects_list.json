@@ -1,0 +1,14 @@
+{
+  "projects": [
+    {
+      "id": 1,
+      "name": "Acme App",
+      "description": "Flagship product"
+    },
+    {
+      "id": 7,
+      "name": "Billing",
+      "description": "Payments platform"
+    }
+  ]
+}

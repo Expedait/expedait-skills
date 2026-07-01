@@ -6,17 +6,21 @@ allowed-tools: Bash, Read, Glob, Grep
 
 # Review Code Against Expedait Deliverables
 
-Run the CLI via `uvx --from expedait-cli expedait` — it runs in an isolated environment via uv, so no global install or virtual environment is needed.
+This skill drives the `expedait` CLI over Bash — no MCP tool required. Run every command as
+`uvx --from expedait-cli expedait <command>` (an isolated uv environment, no global install).
 
-"Review" findings are scoring issues raised on a deliverable. The CLI gives you two surfaces
-over them — read and triage:
+This skill does two things: **read/triage the scoring findings** already on a deliverable,
+and **run a manual spec-vs-code comparison** yourself (the CLI has no automated
+codebase-review runner). Post divergences you find with `/expedait-comment`.
 
-- **Read findings** — `expedait review issues DELIVERABLE_ID` lists the scoring findings on a
-  deliverable (severity, description, the criteria that flagged it, anchor offsets).
-- **Triage findings** — `expedait review mute ISSUE_ID` mutes one that isn't actionable.
+## Commands at a glance
 
-The CLI has no automated codebase-review runner — **you** do the spec-vs-code comparison
-yourself (the manual path below) and post divergences with `/expedait-comment`.
+| Goal | Command (prefix each with `uvx --from expedait-cli expedait`) |
+|------|--------------------------------------------------------------|
+| **Read open review findings on a deliverable** | `review issues DELIVERABLE_ID --state open` |
+| Mute a finding that isn't actionable | `review mute ISSUE_ID --note "…"` (or `--unmute`) |
+| Pull fresh deliverables to compare against | `projects download PROJECT --output-dir .expedait/context` |
+| An objective's descendant tree | `objectives overview DELIVERABLE_ID` |
 
 ## Reading existing review findings
 
@@ -31,11 +35,12 @@ uvx --from expedait-cli expedait review mute ISSUE_ID --note "tracked in JIRA-12
 ## Via the MCP server (reading & triaging findings)
 
 If you're connected to the hosted Expedait MCP server (`https://mcp.expedait.org`) instead
-of the CLI, you can read and triage review findings directly:
+of the CLI, you can read and triage review findings directly (tool names are `ServerName:tool`,
+where the server is `expedait`):
 
 ```
-list_review_issues(deliverable_id, state?)   # state: open | muted | all (default all)
-mute_review_issue(issue_id, muted?, muted_note?)   # muted=false to unmute; needs mcp:deliverables:write
+expedait:list_review_issues(deliverable_id, state?)   # state: open | muted | all (default all)
+expedait:mute_review_issue(issue_id, muted?, muted_note?)   # muted=false to unmute; needs mcp:deliverables:write
 ```
 
 Each issue carries severity, description, the criteria that flagged it, anchor offsets, and

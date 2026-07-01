@@ -1,0 +1,78 @@
+{
+  "skill_name": "expedait-author",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a new PRD deliverable titled 'Auth PRD' in project 7, using the draft in draft.md.",
+      "expected_output": "Looks up the deliverable type id, then creates the deliverable from the draft.",
+      "files": {
+        "draft.md": "# Auth PRD\n\n## Goals\n\n## Requirements\n"
+      },
+      "assertions": [
+        {"name": "looks-up-type", "description": "Resolves the --type id via deliverables types instead of guessing"},
+        {"name": "creates-deliverable", "description": "Runs deliverables create with a title"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["deliverables", "types"]},
+          {"args_contain": ["deliverables", "create"]},
+          {"args_contain": ["--title"]}
+        ],
+        "order": [
+          {"args_contain": ["deliverables", "types"]},
+          {"args_contain": ["deliverables", "create"]}
+        ],
+        "must_not_call": [
+          {"args_contain": ["deliverables", "delete"]}
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "prompt": "Mark deliverable 12 as Approved.",
+      "expected_output": "Transitions deliverable 12 to the Approved state.",
+      "files": {},
+      "assertions": [
+        {"name": "sets-state", "description": "Runs deliverables set-state for id 12"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["deliverables", "set-state", "12"]},
+          {"args_contain": ["--state"]}
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "prompt": "Snapshot a restorable version of deliverable 12 with the reason 'first complete draft'.",
+      "expected_output": "Saves a named version of deliverable 12 (not just an autosave edit).",
+      "files": {},
+      "assertions": [
+        {"name": "saves-version", "description": "Runs deliverables save-version for id 12"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["deliverables", "save-version", "12"]}
+        ],
+        "must_not_call": [
+          {"args_contain": ["deliverables", "delete"]}
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "prompt": "Rename deliverable 12 to 'Billing PRD'.",
+      "expected_output": "Renames deliverable 12.",
+      "files": {},
+      "assertions": [
+        {"name": "renames", "description": "Runs deliverables rename for id 12 with a new title"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["deliverables", "rename", "12"]},
+          {"args_contain": ["--title"]}
+        ]
+      }
+    }
+  ]
+}

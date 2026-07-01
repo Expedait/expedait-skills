@@ -1,0 +1,57 @@
+{
+  "skill_name": "expedait-process",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Before I design a new project type, show me the Expedait processes that already exist.",
+      "expected_output": "Lists existing processes so we reuse rather than duplicate.",
+      "files": {},
+      "assertions": [
+        {"name": "lists-processes", "description": "Runs processes list"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["processes", "list"]}
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "prompt": "Create a new process called 'Lean PRD' with a Definition phase that has a Product Vision card and a PRD card.",
+      "expected_output": "Looks at existing processes, then builds the new one with a single processes write ops call.",
+      "files": {},
+      "assertions": [
+        {"name": "inspects-first", "description": "Runs processes list before building"},
+        {"name": "writes-process", "description": "Runs processes write to build the process atomically"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["processes", "list"]},
+          {"args_contain": ["processes", "write"]}
+        ],
+        "order": [
+          {"args_contain": ["processes", "list"]},
+          {"args_contain": ["processes", "write"]}
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "prompt": "Add a 'Data Architect' owner role to the workspace role pool.",
+      "expected_output": "Creates a new role named Data Architect.",
+      "files": {},
+      "assertions": [
+        {"name": "creates-role", "description": "Runs roles create with a --name"}
+      ],
+      "command_assertions": {
+        "must_call": [
+          {"args_contain": ["roles", "create"]},
+          {"args_contain": ["--name"]}
+        ],
+        "must_not_call": [
+          {"args_contain": ["roles", "delete"]}
+        ]
+      }
+    }
+  ]
+}

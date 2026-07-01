@@ -1,0 +1,12 @@
+{
+  "results": [
+    {
+      "op": "create_process",
+      "status": "ok"
+    }
+  ],
+  "affected_ids": [
+    2
+  ],
+  "process_id": 2
+}

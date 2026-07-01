@@ -1,0 +1,14 @@
+{
+  "types": [
+    {
+      "id": 3,
+      "name": "Product Vision",
+      "abbreviation": "PV"
+    },
+    {
+      "id": 12,
+      "name": "PRD",
+      "abbreviation": "PRD"
+    }
+  ]
+}
