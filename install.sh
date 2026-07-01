@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/skills"
 PLATFORMS_DIR="$SCRIPT_DIR/platforms"
 TARGET_DIR="${TARGET_DIR:-.}"
-VERSION="0.6.0"
+VERSION="0.7.0"
 VERSION_FILE=".expedait-skills-version"
 GITHUB_LATEST="https://api.github.com/repos/Expedait/expedait-skills/releases/latest"
 
