@@ -1,5 +1,5 @@
 ---
-description: "Create or adapt an Expedait process — the project-type template that every project is instantiated from: its phases, deliverable types, dependencies, and owner roles. Use this skill whenever the user wants to design a new process, set up a project template, add or reorder phases, add deliverable types/cards, wire dependencies between deliverable types, assign owner roles, define a new role, or restructure the Process Designer. Also trigger for 'create a new process', 'set up a project type', 'design the spec workflow', 'add a deliverable type to the template', or 'who owns this deliverable type'."
+description: "Create or adapt an Expedait process — the project-type template that every project is instantiated from: its phases, rows, deliverable types, dependencies, and the team that owns each deliverable type. Use this skill whenever the user wants to design a new process, set up a project template, add or reorder phases, add deliverable types/cards, wire dependencies between deliverable types, assign the owning team, create a team, or restructure the Process Designer. Also trigger for 'create a new process', 'set up a project type', 'design the spec workflow', 'add a deliverable type to the template', or 'who owns this deliverable type'."
 trigger: manual
 ---
 
@@ -16,7 +16,7 @@ Process building runs over either of two transports, at parity:
   they're in your tool list.** No install, no cold start, and the ops array is a structured
   argument, so you never hand-escape JSON in a shell. Writing needs the `mcp:process:write`
   scope (kept separate from `mcp:deliverables:write` on purpose — reshaping a template touches
-  every project of that type).
+  every project of that type) and a workspace owner: a member's writes are refused with a 403.
 - **The `expedait` CLI** — the fallback that works in any agent with a shell. Runs in an
   isolated uv environment (no global install): `uvx --from expedait-cli expedait <command>`.
   Authenticate once with `uvx --from expedait-cli expedait auth login`.
@@ -28,15 +28,21 @@ Only the invocation envelope differs, as the table below shows.
 Its shape:
 
 - **Phases** — ordered stages of the process (e.g. Discovery → Definition → Design).
-- **Phase rows** — optional horizontal lanes inside a phase for laying out cards.
+- **Phase rows** — the order inside a phase. A card depends on the cards in the rows above it,
+  and cards in one row run in parallel. **Every card needs a row**: a card without one is saved
+  but not drawn on the Process Designer canvas, so the owner can't see or edit it.
 - **Deliverable types** — the cards in each phase, each a template for a deliverable (PRD,
   vision, persona, …) with its own instructions, template content, and requirements. A card
   flagged `is_objective` owns its own **subprocess** (an inner set of phases) — that is how an
   objective nests child deliverables.
-- **Dependencies** — directed edges between deliverable types (which upstream deliverables
-  feed a deliverable's LLM context). Only siblings may depend on each other.
-- **Owner roles** — the project role(s) responsible for each deliverable type, drawn from the
-  workspace's role pool.
+- **Dependencies** — directed edges between deliverable types in different phases (which
+  upstream deliverables a deliverable waits for and reads as context). Inside a phase, order
+  comes from rows; `set_dependencies` between two cards of one phase is refused. Only siblings
+  may depend on each other (both top-level, or both inside the same objective).
+- **Owning team** — the one team accountable for each deliverable type. Its agent works on the
+  deliverables of that type (chat, agent mode) and its instructions shape how they're scored.
+  Teams are named for what they own (Architecture, Security & Compliance), not after a job
+  title.
 
 ## First: check for skill updates
 
@@ -70,10 +76,10 @@ CLI commands are prefixed with `uvx --from expedait-cli expedait`. MCP tool name
 |------|----------|-------------|
 | List existing processes | `expedait:list_processes()` | `processes list` |
 | Inspect a process (full tree) | `expedait:get_process(id)` | `processes get PROCESS_ID` |
-| List the workspace role pool | `expedait:list_roles()` | `roles list` |
+| List the workspace's teams | `expedait:list_teams()` | `teams list` |
 | **Build or modify a process atomically** | `expedait:write_process(ops=[…])` | `processes write --ops -` |
-| Create / change roles atomically | `expedait:write_role(ops=[…])` | `roles write --ops -` |
-| Create an owner role (ergonomic) | via `expedait:write_role` `create_role` op | `roles create --name "…" --instructions @file` |
+| Create / change teams atomically | `expedait:write_team(ops=[…])` | `teams write --ops -` |
+| Create a team (ergonomic) | via `expedait:write_team` `create_team` op | `teams create --name "…" --instructions @file` |
 | **Instantiate a project from a process** | `expedait:write_project(ops=[…])` | `projects create --name "…" --process-id ID` |
 
 ## Look before you build
@@ -83,48 +89,59 @@ Reuse or extend rather than duplicate, and inspect any process you'll adapt —
 
 ```bash
 uvx --from expedait-cli expedait processes list                 # id, name, description, icon
-uvx --from expedait-cli expedait processes get PROCESS_ID       # full tree: phases → rows → cards, deps, owner roles, subprocesses
+uvx --from expedait-cli expedait processes get PROCESS_ID       # full tree: phases → rows → cards, deps, owning teams, subprocesses
 ```
 
-## Check (or create) the role pool
+## Check (or create) the teams
 
-Owner roles are assigned by name or id. See what exists, and create any that don't. On the CLI:
+The owning team is assigned by name or id. Reuse a team that fits, and create one only when
+none does. On the CLI (`teams` needs `expedait-cli` ≥ 0.4.4):
 
 ```bash
-uvx --from expedait-cli expedait roles list
-uvx --from expedait-cli expedait roles create --name "Data Architect" \
-  --instructions @data-architect-persona.md          # --instructions: @file, -, or literal
+uvx --from expedait-cli expedait teams list
+uvx --from expedait-cli expedait teams create --name "Data Platform" \
+  --instructions @data-platform-agent.md             # --instructions: @file, -, or literal
 # update / delete also available:
-uvx --from expedait-cli expedait roles update ROLE_ID --description "..."
-uvx --from expedait-cli expedait roles delete ROLE_ID
+uvx --from expedait-cli expedait teams update TEAM_ID --description "..."
+uvx --from expedait-cli expedait teams update TEAM_ID --instructions @data-platform-agent.md
+uvx --from expedait-cli expedait teams delete TEAM_ID   # refused while the team owns deliverable types
 ```
 
-`instructions` is the role's LLM coaching persona (the system prompt for deliverables this role
-owns). For several role changes at once, use the atomic `expedait:write_role(ops=[…])` /
-`roles write --ops` form (`create_role` / `update_role` / `delete_role`, chainable with
-`ref` / `@ref`).
+`instructions` is the team agent's persona: it shapes the chat, agent mode and scoring of the
+deliverables the team owns, and a default applies until someone writes one. For several team
+changes at once, use the atomic `expedait:write_team(ops=[…])` / `teams write --ops` form
+(`create_team` / `update_team` / `update_team_agent` / `delete_team`, chainable with
+`ref` / `@ref`). The persona has its own op: `update_team` refuses `instructions`. Only
+workspace owners can change teams.
 
 ## Build the process in one write call (identical op model on both transports)
 
 Process building is one atomic `ops` array. Ops execute in order and chain across entity kinds
-via **named refs**: a create op carries `ref: "x"`, later ops reference `"@x"`. You don't
-compute canvas coordinates — omit `col_position` / rows and cards auto-place.
+via **named refs**: a create op carries `ref: "x"`, later ops reference `"@x"`. Create each
+phase's rows with `create_phase_row` (top row first) and pass `phase_row_id` on every card; you
+don't compute canvas coordinates: omit `col_position` and cards are placed in their row.
 
 The `ops` array is the same JSON on both transports:
 
 ```json
 [
   {"op": "create_process", "ref": "p", "name": "Lean PRD", "description": "Vision → PRD"},
-  {"op": "create_phase", "ref": "ph", "process_id": "@p", "name": "Definition"},
-  {"op": "create_deliverable_type", "ref": "vision", "phase_id": "@ph", "name": "Product Vision",
-   "abbreviation": "PV", "instructions": "Capture the strategic intent…",
-   "template_content": "## Vision\n\n## Why now\n"},
-  {"op": "create_deliverable_type", "ref": "prd", "phase_id": "@ph", "name": "PRD",
-   "abbreviation": "PRD", "after_type_id": "@vision"},
-  {"op": "set_dependencies", "type_id": "@prd", "dependency_ids": ["@vision"]},
-  {"op": "set_owner_roles", "type_id": "@prd", "role_names": ["Product Manager"]}
+  {"op": "create_phase", "ref": "ph", "process_id": "@p", "name": "Definition", "order": 1},
+  {"op": "create_phase_row", "ref": "r1", "phase_id": "@ph"},
+  {"op": "create_phase_row", "ref": "r2", "phase_id": "@ph"},
+  {"op": "create_deliverable_type", "ref": "vision", "phase_id": "@ph", "phase_row_id": "@r1",
+   "name": "Product Vision", "abbreviation": "PV", "instructions": "Capture the strategic intent…",
+   "template_content": "## Vision\n\n## Why now\n",
+   "deliverable_requirements": "- Names who it is for\n- Says why now"},
+  {"op": "create_deliverable_type", "ref": "prd", "phase_id": "@ph", "phase_row_id": "@r2",
+   "name": "PRD", "abbreviation": "PRD"},
+  {"op": "set_owner_team", "type_id": "@vision", "team_name": "Product Leadership"},
+  {"op": "set_owner_team", "type_id": "@prd", "team_name": "Product Management"}
 ]
 ```
+
+The PRD sits in the row below the vision, so it depends on it: inside a phase, the rows are the
+dependencies. Use `set_dependencies` for a card that waits on a card in an earlier phase.
 
 - **MCP (preferred):** `expedait:write_process(ops=[…])` — pass the array as a structured argument,
   no shell escaping.
@@ -134,16 +151,18 @@ The `ops` array is the same JSON on both transports:
   uvx --from expedait-cli expedait processes write --ops - <<'JSON'
   [
     {"op": "create_process", "ref": "p", "name": "Lean PRD", "description": "Vision → PRD"},
-    {"op": "create_phase", "ref": "ph", "process_id": "@p", "name": "Definition"},
-    {"op": "create_deliverable_type", "ref": "prd", "phase_id": "@ph", "name": "PRD",
-     "abbreviation": "PRD"},
-    {"op": "set_owner_roles", "type_id": "@prd", "role_names": ["Product Manager"]}
+    {"op": "create_phase", "ref": "ph", "process_id": "@p", "name": "Definition", "order": 1},
+    {"op": "create_phase_row", "ref": "r1", "phase_id": "@ph"},
+    {"op": "create_deliverable_type", "ref": "prd", "phase_id": "@ph", "phase_row_id": "@r1",
+     "name": "PRD", "abbreviation": "PRD"},
+    {"op": "set_owner_team", "type_id": "@prd", "team_name": "Product Management"}
   ]
   JSON
   ```
 
-**Verify** with `expedait:get_process(id)` / `processes get PROCESS_ID` — the write result also reports
-per-op `{status, …}` and the new ids (`affected_ids`) so you know the new process id to read back.
+**Verify** with `expedait:get_process(id)` / `processes get PROCESS_ID`: every card should have a
+`phase_row_id` and an owning team. The write result also reports per-op `{status, …}` and the
+new ids (`affected_ids`) so you know the new process id to read back.
 
 ## Instantiate a project from the process
 
@@ -180,26 +199,33 @@ Once the project exists, hand off to **`/expedait-author`** to draft its deliver
   `{op: "update_phase_row", id, position}` / `{op: "delete_phase_row", id}`
 - `{op: "create_deliverable_type", ref?, phase_id, name, abbreviation?, description?,
   instructions?, template_content?, deliverable_requirements?, allow_multiple?, is_objective?,
-  parent_type_id?, phase_row_id?, col_position?, after_type_id?}` — omit `col_position` to
-  auto-place (append, or just after `after_type_id`); set `is_objective: true` to make the
-  card own a subprocess
+  parent_type_id?, phase_row_id?, col_position?, after_type_id?}` — always pass `phase_row_id`
+  (a card without a row isn't drawn on the canvas); omit `col_position` to place the card in its
+  row (append, or just after `after_type_id`); set `is_objective: true` to make the card own a
+  subprocess
 - `{op: "update_deliverable_type", id, …}` / `{op: "delete_deliverable_type", id, confirm_in_use?}`
 - `{op: "set_dependencies", type_id, dependency_ids[]}` — `type_id` and each `dependency_id`
-  accept `@refs`; only siblings may depend on each other
-- `{op: "set_owner_roles", type_id, role_ids[] | role_names[]}` — names resolve server-side,
-  so no `roles list` round-trip is needed
+  accept `@refs`; only between cards in different phases, and only between siblings
+- `{op: "set_owner_team", type_id, team_id | team_name}` — one owning team per deliverable
+  type; a name resolves server-side, so no `teams list` round-trip is needed; `null` clears
+  the owner
 
 ## Tips
 
-- **One call, many ops.** A single write builds a whole process — refs let create → wire-deps →
-  assign-roles happen atomically (cap 50 ops).
+- **One call, many ops.** A single write builds a whole process — refs let create → rows →
+  wire-deps → assign-owners happen atomically (cap 50 ops).
+- **Exact field names.** A field the op doesn't know is ignored without an error, so check
+  names against the op reference above.
 - **Per-op results.** Ops stop on the first failure; the rest report `skipped`. Each result is
   `{status: ok | error | skipped}` with a structured `{error_code, error, fix_hint}` (e.g.
   `bad_ref`, `delete_in_use`) — read it to know exactly which ops landed.
 - **Deletes are guarded.** `delete_process` / `delete_deliverable_type` refuse an in-use
-  template unless you pass `confirm_in_use: true`. Deleting reshapes live projects — confirm
-  with the user first.
+  template unless you pass `confirm_in_use: true`. An objective that still has child types, or
+  a phase holding one, can't be deleted until the children are deleted or moved out; deleting a
+  whole process removes everything in it. Deleting reshapes live projects — confirm with the
+  user first.
 - **Objectives nest.** Create a deliverable type with `is_objective: true`, then add its inner
-  phases with `create_phase` using `parent_type_id: "@thatcard"`.
+  phases with `create_phase` using `parent_type_id: "@thatcard"`, and rows and child cards in
+  those phases.
 - If the `expedait:*` tools aren't in your tool list, the connector isn't attached — use the
   CLI. CLI output auto-detects (text in a terminal, JSON when piped; `--format json` to force).

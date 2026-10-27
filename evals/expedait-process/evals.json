@@ -37,19 +37,19 @@
     },
     {
       "id": 3,
-      "prompt": "Add a 'Data Architect' owner role to the workspace role pool.",
-      "expected_output": "Creates a new role named Data Architect.",
+      "prompt": "Add a 'Data Platform' team to the workspace so it can own our data deliverable types.",
+      "expected_output": "Creates a new team named Data Platform.",
       "files": {},
       "assertions": [
-        {"name": "creates-role", "description": "Runs roles create with a --name"}
+        {"name": "creates-team", "description": "Runs teams create with a --name"}
       ],
       "command_assertions": {
         "must_call": [
-          {"args_contain": ["roles", "create"]},
+          {"args_contain": ["teams", "create"]},
           {"args_contain": ["--name"]}
         ],
         "must_not_call": [
-          {"args_contain": ["roles", "delete"]}
+          {"args_contain": ["teams", "delete"]}
         ]
       }
     }

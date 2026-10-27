@@ -5,13 +5,22 @@
     {
       "id": 1,
       "name": "Definition",
+      "rows": [
+        {
+          "id": 5,
+          "position": 1000.0
+        }
+      ],
       "deliverable_types": [
         {
           "id": 12,
           "name": "PRD",
-          "owner_roles": [
-            "Product Manager"
-          ]
+          "phase_row_id": 5,
+          "owner_team_id": 1,
+          "owner_team": {
+            "id": 1,
+            "name": "Product Management"
+          }
         }
       ]
     }
