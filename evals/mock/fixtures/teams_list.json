@@ -1,0 +1,12 @@
+{
+  "teams": [
+    {
+      "id": 1,
+      "name": "Product Management"
+    },
+    {
+      "id": 2,
+      "name": "Engineering"
+    }
+  ]
+}

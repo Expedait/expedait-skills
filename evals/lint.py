@@ -24,11 +24,11 @@ SKILL_NAMES = [
 # Bare MCP tool names that must be qualified as `expedait:<tool>` (best-practices doc:
 # "always use fully qualified tool names").
 MCP_TOOLS = [
-    "write_deliverable", "write_process", "write_role", "get_deliverable",
+    "write_deliverable", "write_process", "write_team", "get_deliverable",
     "list_projects", "list_deliverables", "get_project_workspace",
     "get_objective_overview", "get_deliverable_context", "list_comments",
     "create_comment", "resolve_comment", "list_processes", "get_process",
-    "list_roles", "list_review_issues", "mute_review_issue",
+    "list_teams", "list_review_issues", "mute_review_issue",
 ]
 
 # Phrasing the best-practices doc calls out as time-sensitive / migration cruft.

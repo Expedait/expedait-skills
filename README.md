@@ -47,7 +47,7 @@ export EXPEDAIT_TENANT_ID=1
 
 Credentials are cached in `~/.expedait/config.json`. Settings are resolved in order: CLI flag → environment variable → `~/.expedait/config.json`. Pass the project per command (by ID, name, or interactively) — there is no separate init step.
 
-> **Prefer the hosted MCP server?** Add `https://mcp.expedait.org` to your AI client's connectors, sign in once, and pick a workspace — it exposes the same primitives (projects, deliverables, objectives, context, review, comments) and the same write surface as the CLI: author and edit deliverables (`write_deliverable`), design project-type processes (`write_process`), and manage owner roles (`write_role`). See [Expedait's MCP docs](https://expedait.com).
+> **Prefer the hosted MCP server?** Add `https://mcp.expedait.org` to your AI client's connectors, sign in once, and pick a workspace — it exposes the same primitives (projects, deliverables, objectives, context, review, comments) and the same write surface as the CLI: author and edit deliverables (`write_deliverable`), design project-type processes (`write_process`), and manage the teams that own deliverable types (`write_team`). See [Expedait's MCP docs](https://expedait.com).
 
 ### 3. Use a skill
 
@@ -66,14 +66,14 @@ Or just ask naturally: *"Download the specs for project 1 and review my code aga
 |-------|-------------|
 | [Download Project Context](skills/expedait-download/SKILL.md) | Download a project's objectives, deliverables, and context |
 | [Author Deliverables](skills/expedait-author/SKILL.md) | Create and edit deliverables — draft content, snapshot versions, change state |
-| [Process Designer](skills/expedait-process/SKILL.md) | Create or adapt a project-type process — phases, deliverable types, dependencies, owner roles |
+| [Process Designer](skills/expedait-process/SKILL.md) | Create or adapt a project-type process — phases, rows, deliverable types, dependencies, owning teams |
 | [Post a Comment](skills/expedait-comment/SKILL.md) | Post an inline comment on a deliverable |
 | [Review](skills/expedait-review/SKILL.md) | Check objective/PRD/vision alignment against code, and read review findings — scopes to branch changes or full audit |
 | [Update Skills](skills/expedait-update-skills/SKILL.md) | Check whether the installed skills are current and update them if a newer release exists |
 
 > Every skill works with **either the CLI or the hosted MCP server**. The write surface —
 > authoring deliverables (`write_deliverable`), designing processes (`write_process`), and
-> managing roles (`write_role`) — landed in `expedait-cli` 0.4.0, so the **Author** and
+> managing teams (`write_team`) — is in `expedait-cli` (teams since 0.4.4), so the **Author** and
 > **Process Designer** skills are CLI-first with an MCP-alternative section.
 
 ## Staying up to date
